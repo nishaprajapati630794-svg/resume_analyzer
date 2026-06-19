@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ResumeAI Pro v3.2 — Brutal Truth Resume Analyzer (2026 Edition)</title>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+theme: {
+extend: {
+colors: {
+brand: { 50:'#eef2ff', 100:'#e0e7ff', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca', 900:'#312e81' }
+}
+}
+}
+}
+</script>
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+.gradient-bg { background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 50%, #7c3aed 100%); }
+.glass { background: rgba(255,255,255,0.97); backdrop-filter: blur(10px); }
+.loader { border: 4px solid #e0e7ff; border-top-color: #4f46e5; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-ring { 0%{box-shadow:0 0 0 0 rgba(239,68,68,.6)} 70%{box-shadow:0 0 0 15px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)} }
+.listening { animation: pulse-ring 1.5s infinite; }
+.drag-over { background: #e0e7ff !important; border-color: #4f46e5 !important; transform: scale(1.01); }
+.fade-in { animation: fadeIn .4s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
+::-webkit-scrollbar-track { background: #f5f3ff; }
+.skill-chip { display:inline-flex; align-items:center; padding:4px 12px; border-radius:9999px; font-size:12px; font-weight:500; margin:3px; }
+.progress-bar { transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+.brutal-card { border-left: 4px solid #dc2626; }
+.truth-card { border-left: 4px solid #f59e0b; }
+.win-card { border-left: 4px solid #10b981; }
+details summary { cursor: pointer; list-style: none; user-select: none; }
+details summary::-webkit-details-marker { display: none; }
+details[open] summary .arrow { transform: rotate(90deg); }
+.arrow { transition: transform 0.2s; display: inline-block; }
+.demo-resume { background: #ffffff; color: #1e293b; font-family: 'Georgia', serif; }
+.demo-resume h2 { font-size: 16px; font-weight: bold; border-bottom: 2px solid #1e293b; padding-bottom: 2px; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+.demo-resume h1 { font-size: 20px; font-weight: bold; text-align: center; }
+.demo-resume h3 { font-size: 13px; font-weight: 600; }
+.demo-resume p, .demo-resume li { font-size: 11px; line-height: 1.5; }
+.demo-resume ul { list-style: disc; margin-left: 18px; }
+</style>
+</head>
+
+<body class="bg-slate-50 min-h-screen">
+
+<!-- ============ NAVBAR ============ -->
+<nav class="glass sticky top-0 z-50 border-b border-slate-200">
+<div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-lg gradient-bg flex items-center justify-center text-white font-bold">R</div>
+<div>
+<span class="text-xl font-bold text-slate-800">ResumeAI<span class="text-brand-600">Pro</span></span>
+<span class="ml-2 text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">2026 EDITION</span>
+</div>
+</div>
+<div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+<a href="#analyzer" class="hover:text-brand-600">Analyzer</a>
+<a href="#resume-format" class="hover:text-brand-600">Resume Format</a>
+<a href="#demo-resume-section" class="hover:text-brand-600">Demo Resume</a>
+<a href="#results" class="hover:text-brand-600">Results</a>
+<a href="#jobs" class="hover:text-brand-600">Jobs</a>
+<button onclick="newAnalysis()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm">New Analysis</button>
+</div>
+</div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="gradient-bg text-white py-10">
+<div class="max-w-7xl mx-auto px-6 text-center">
+<h1 class="text-3xl md:text-4xl font-bold mb-2">AI Resume Analyzer — Brutal Truth, 2026 Standards</h1>
+<p class="text-sm md:text-base text-indigo-100 max-w-3xl mx-auto">Real recruiter evaluation. Real ATS logic. GenAI-era benchmarks. No participation trophies, no inflated scores, no fake "100% matches".</p>
+<div class="mt-4 flex flex-wrap justify-center gap-3 text-xs">
+<span class="bg-white/10 px-3 py-1 rounded-full">📊 Real Match Score</span>
+<span class="bg-white/10 px-3 py-1 rounded-full">⚠️ Truth Score (hidden weaknesses)</span>
+<span class="bg-white/10 px-3 py-1 rounded-full">🤖 AI-Era Skills (LLM, RAG, Agents)</span>
+<span class="bg-white/10 px-3 py-1 rounded-full">🏆 2026 Industry Benchmarks</span>
+</div>
+</div>
+</section>
+
+<!-- ============ MAIN ANALYZER ============ -->
+<section id="analyzer" class="max-w-7xl mx-auto px-6 py-8">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+<!-- ===== RESUME UPLOAD (USER'S RESUME ONLY) ===== -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+<div class="flex items-center gap-3 mb-5">
+<div class="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 text-xl">📄</div>
+<div>
+<h2 class="text-lg font-semibold text-slate-800">Step 1: Upload Your Resume</h2>
+<p class="text-xs text-slate-500">Drop your own resume · PDF, DOCX, TXT, or Image (OCR)</p>
+</div>
+</div>
+
+<label for="resumeFile" id="uploadArea" class="block border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-brand-500 hover:bg-brand-50 transition">
+<div class="text-5xl mb-2">📁</div>
+<p class="text-slate-700 font-medium">Drop <b>your resume</b> here or <span class="text-brand-600 underline">browse</span></p>
+<p class="text-xs text-slate-500 mt-1">PDF · DOCX · TXT · JPG · PNG · Max 10MB</p>
+<input type="file" id="resumeFile" accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png" class="hidden" />
+</label>
+
+<div id="fileInfo" class="hidden mt-4 flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+<span class="text-xl">✅</span>
+<div class="flex-1 min-w-0">
+<p id="fileName" class="text-sm font-medium text-emerald-800 truncate"></p>
+<p id="fileStatus" class="text-xs text-emerald-600">Ready</p>
+</div>
+<button onclick="removeFile()" class="text-red-500 hover:text-red-700 text-sm font-medium">Remove</button>
+</div>
+
+<button onclick="saveResume()" id="saveBtn" class="hidden w-full mt-3 bg-slate-800 hover:bg-slate-900 text-white py-2 rounded-lg text-xs font-medium">💾 Save Resume Locally</button>
+<p class="text-[11px] text-slate-500 mt-3 text-center">
+👇 See standard 2026 format: scroll to <a href="#demo-resume-section" class="text-brand-600 underline font-medium">Demo Resume</a>
+</p>
+</div>
+
+<!-- ===== JOB DESCRIPTION ===== -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+<div class="flex items-center gap-3 mb-5">
+<div class="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 text-xl">💼</div>
+<div>
+<h2 class="text-lg font-semibold text-slate-800">Step 2: Paste Job Description</h2>
+<p class="text-xs text-slate-500">Type, paste, or speak — English / Hindi / Hinglish</p>
+</div>
+</div>
+
+<div class="flex flex-wrap items-center gap-2 mb-3">
+<select id="langSelect" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+<option value="en-US">🇬🇧 English</option>
+<option value="en-IN">🇮🇳 English (India)</option>
+<option value="hi-IN">🇮🇳 हिंदी / Hinglish</option>
+</select>
+<button id="micBtn" onclick="toggleVoice()" class="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-medium">
+🎤 <span id="micText">Voice</span>
+</button>
+<span id="recStatus" class="text-xs text-slate-500"></span>
+</div>
+
+<textarea id="jobDesc" rows="8" placeholder="Paste the actual job description here...
+
+Example: 'GenAI Engineer Intern at Anthropic - 2026'
+Required: Python, PyTorch, LLM fine-tuning, RAG, vector DBs
+Bonus: Agentic AI, LangChain, AWS Bedrock..." class="w-full px-4 py-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none resize-none"></textarea>
+
+<p class="text-xs text-slate-500 mt-2 mb-1">🎓 <b>2026 Student Sample JDs</b> (click to load):</p>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+<button onclick="loadSampleJD('genai-intern')" class="text-xs px-2 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded">🤖 GenAI Intern</button>
+<button onclick="loadSampleJD('sde-2026')" class="text-xs px-2 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded">💻 SDE 2026</button>
+<button onclick="loadSampleJD('data-intern')" class="text-xs px-2 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded">📊 Data Intern</button>
+<button onclick="loadSampleJD('web-dev')" class="text-xs px-2 py-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 rounded">🌐 Web Dev</button>
+<button onclick="loadSampleJD('ml-engineer')" class="text-xs px-2 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded">🧠 ML Engineer</button>
+<button onclick="loadSampleJD('devops')" class="text-xs px-2 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded">⚙️ DevOps</button>
+</div>
+</div>
+</div>
+
+<!-- ANALYZE BUTTON -->
+<div class="mt-6 text-center">
+<button onclick="analyzeResume()" id="analyzeBtn" class="gradient-bg hover:opacity-90 text-white font-semibold px-12 py-4 rounded-xl text-lg shadow-lg shadow-brand-500/30 transition">
+🔍 Get Brutal Truth Analysis
+</button>
+</div>
+
+<!-- LOADING (FAST - 300ms) -->
+<div id="loading" class="hidden mt-8 text-center bg-white rounded-2xl p-6 border border-slate-200">
+<div class="loader mx-auto mb-3"></div>
+<p class="text-slate-600 font-medium text-sm">Analyzing...</p>
+</div>
+</section>
+
+<!-- ============ DEMO RESUME (2026 EDITION - DISPLAY ONLY) ============ -->
+<section id="demo-resume-section" class="max-w-5xl mx-auto px-6 py-8">
+<div class="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-brand-200 p-6 shadow-sm">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center text-brand-700 text-xl">📑</div>
+<div>
+<h2 class="text-xl font-bold text-slate-800">Demo Resume — 2026 Standard Format</h2>
+<p class="text-xs text-slate-600">Reference for students. <b>View-only</b> — does not load into the analyzer.</p>
+</div>
+</div>
+
+<div class="mt-4 bg-white rounded-xl border border-slate-200 overflow-hidden">
+<button type="button" onclick="toggleDemoResume()" id="demoResumeToggle" class="w-full flex items-center justify-between p-4 hover:bg-slate-50 text-left transition" aria-expanded="false">
+<div class="flex items-center gap-2">
+<span class="arrow text-brand-600 font-bold" id="demoResumeArrow">▶</span>
+<span class="font-semibold text-slate-800 text-sm">📄 Click to view sample 2026 student resume (IIT Bombay, AI/ML, Grad 2026)</span>
+</div>
+<span class="text-xs text-slate-500">AI-Era 1-page format</span>
+</button>
+
+<div id="demoResumePanel" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 0.4s ease, opacity 0.3s ease;">
+<div class="p-6 border-t border-slate-200 demo-resume">
+<h1>ANANYA SHARMA</h1>
+<p style="text-align:center; font-size:10px; margin-top:2px;">
+ananya.sharma@iitb.ac.in · +91-98765-43210 · linkedin.com/in/ananyasharma-iitb · github.com/ananyasharma · ananyasharma.ai
+</p>
+
+<h2>Education</h2>
+<p><b>Indian Institute of Technology Bombay</b> — B.Tech Computer Science & AI (Specialization: Generative AI Systems)</p>
+<p>CGPA: <b>8.9/10</b> | Expected Graduation: May 2026 | Coursework: Transformers & LLMs, Reinforcement Learning, Distributed Systems, Computer Vision, ML Ops, Database Systems, Computer Networks</p>
+
+<h2>Experience</h2>
+<p><b>GenAI Engineering Intern</b> — Anthropic India (Remote) (<i>May 2025 – Aug 2025</i>)</p>
+<ul>
+<li>Built a RAG-based code review agent using Claude API + LangChain, reducing manual code review time by 60% (from 45 min to 18 min per PR) across 12 internal teams.</li>
+<li>Fine-tuned Llama-3-8B on 50K internal code samples using QLoRA, improving domain-specific accuracy by 23% (from 67% to 90% on eval set).</li>
+<li>Implemented production guardrails: prompt injection defense, hallucination detection (self-consistency scoring), PII redaction via regex+NER pipeline.</li>
+<li>Deployed on AWS Bedrock + Lambda, scaled to 2K daily users with 99.7% uptime. Stack: Python, PyTorch, LangChain, Pinecone, AWS.</li>
+</ul>
+
+<p style="margin-top:6px;"><b>AI Research Intern</b> — Microsoft Research India (<i>Jan 2025 – Apr 2025</i>)</p>
+<ul>
+<li>Co-authored a paper on efficient attention mechanisms (accepted at NeurIPS 2025 Workshop). Achieved 1.8x speedup over vanilla transformers on long-context tasks.</li>
+<li>Built evaluation harness for 5 open-source LLMs on 3 benchmarks (MMLU, HumanEval, GSM8K). Open-sourced the framework (340+ GitHub stars).</li>
+</ul>
+
+<h2>Projects</h2>
+<p><b>1. Multi-Agent Research Assistant</b> · <a href="https://github.com/ananyasharma/agent-research">github.com/ananyasharma/agent-research</a></p>
+<ul>
+<li>Built an autonomous research agent using LangGraph + AutoGen that searches 50+ papers, synthesizes findings, and produces a structured report. Used by 800+ students.</li>
+<li>Stack: Python, LangGraph, OpenAI/Anthropic APIs, Pinecone (vector DB), Next.js frontend, Docker, deployed on Vercel + Railway. Cost: $12/month at 1K MAU.</li>
+</ul>
+
+<p style="margin-top:6px;"><b>2. Real-time Multimodal Document Analyzer</b></p>
+<ul>
+<li>Built a tool that processes PDFs + images + tables, uses GPT-4V for visual understanding, and answers questions with citations. Handles 100+ page documents.</li>
+<li>Stack: Python, FastAPI, GPT-4V, PyMuPDF, React, ChromaDB. Deployed on AWS ECS. 5K+ users in first month.</li>
+</ul>
+
+<p style="margin-top:6px;"><b>3. RLHF Pipeline for Indian Languages</b></p>
+<ul>
+<li>Built a human-feedback reinforcement learning pipeline (RLHF) for Hindi/Tamil LLMs using TRL library. Improved toxicity score by 40%.</li>
+<li>Stack: Python, HuggingFace TRL, Axolotl, vLLM, Weights & Biases for experiment tracking.</li>
+</ul>
+
+<h2>Technical Skills</h2>
+<p><b>AI/ML & GenAI:</b> PyTorch, HuggingFace Transformers, LangChain, LangGraph, LlamaIndex, OpenAI API, Claude API, RAG systems, Vector DBs (Pinecone, Weaviate, ChromaDB), Fine-tuning (QLoRA, LoRA, RLHF), Prompt Engineering, Agentic AI, AutoGen, CrewAI</p>
+<p><b>Languages:</b> Python (expert), TypeScript, Go, SQL, Rust (basic)</p>
+<p><b>Backend & Web:</b> FastAPI, Next.js, React, Node.js, PostgreSQL, Redis, Docker, Kubernetes (EKS)</p>
+<p><b>Cloud / MLOps:</b> AWS (Bedrock, Lambda, S3, ECS, SageMaker), GCP (Vertex AI), vLLM, Weights & Biases, MLflow, Terraform</p>
+<p><b>Core CS:</b> Data Structures, Algorithms, System Design, Distributed Systems, DBMS, OS</p>
+
+<h2>Achievements & Leadership</h2>
+<ul>
+<li>🏆 <b>1st Place</b> — Anthropic AI Builders Hackathon 2025 (out of 2,400 teams globally, $10K prize)</li>
+<li>🥇 <b>Winner</b> — Smart India Hackathon 2024 (AI for Healthcare track)</li>
+<li>📝 <b>Research:</b> 1 paper at NeurIPS 2025 Workshop, 1 blog post on HuggingFace (12K+ views)</li>
+<li>📊 <b>LeetCode:</b> 600+ problems solved · <b>Kaggle:</b> 2x Expert (top 0.1%)</li>
+<li>👥 <b>Tech Lead</b> — IIT Bombay AI/ML Club (organized 8 workshops, 200+ members)</li>
+<li>🎤 <b>Speaker</b> — PyConf India 2024, "Building Production-Ready RAG Systems"</li>
+</ul>
+
+<h2>Certifications</h2>
+<ul>
+<li>DeepLearning.AI — Generative AI with LLMs (2024)</li>
+<li>AWS Certified Machine Learning Engineer — Associate (2025)</li>
+<li>HuggingFace — Fine-Tuning & RLHF (2025)</li>
+<li>Anthropic Claude API Developer Certificate (2025)</li>
+</ul>
+</div>
+</details>
+
+<div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+<b>💡 2026 Resume Trends Visible Here:</b> GenAI projects listed first, LLM/RAG/agent skills in the top skills section, NeurIPS publication, PyConf talk, Anthropic + HuggingFace certifications, AI-specific achievements, real metrics (60% time reduction, 1.8x speedup, 800+ users), and a personal AI domain (ananyasharma.ai).
+</div>
+</div>
+</section>
+
+<!-- ============ 2026 RESUME FORMAT GUIDE ============ -->
+<section id="resume-format" class="max-w-7xl mx-auto px-6 py-6">
+<div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white">
+<h2 class="text-2xl font-bold mb-2">📐 2026 Industry Standard Resume Format</h2>
+<p class="text-sm text-slate-300 mb-4">What FAANG, AI labs (OpenAI, Anthropic, Mistral), and top Indian tech companies expect in 2026. The hiring landscape has shifted — GenAI is now a baseline skill, not a niche.</p>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+<div class="bg-white/10 p-4 rounded-lg">
+<h3 class="font-bold text-emerald-400 mb-2">✅ Must Have (2026 Order)</h3>
+<ol class="text-xs text-slate-200 space-y-1 list-decimal ml-4">
+<li><b>Header:</b> Name · Phone · Email · LinkedIn · GitHub · Personal site (e.g., yourname.ai)</li>
+<li><b>Education:</b> Degree + specialization (AI/ML is hot) · CGPA · Year · Relevant coursework (Transformers, LLMs)</li>
+<li><b>Experience:</b> GenAI/AI projects first · Quantified impact (%, $, users, latency)</li>
+<li><b>Projects:</b> 2-4 with live demos, GitHub, deployed links, real users</li>
+<li><b>Skills:</b> AI/GenAI on top, then languages, web, cloud</li>
+</ol>
+</div>
+<div class="bg-white/10 p-4 rounded-lg">
+<h3 class="font-bold text-emerald-400 mb-2">✅ 2026 Differentiators</h3>
+<ul class="text-xs text-slate-200 space-y-1 list-disc ml-4">
+<li>🤖 <b>GenAI projects</b> (RAG, agents, fine-tuning) — non-negotiable now</li>
+<li>📝 <b>Publications</b> (NeurIPS, ICML, ACL, EMNLP) — even workshop papers count</li>
+<li>🎤 <b>Conference talks</b> (PyConf, JSConf, FOSS United, DevConf)</li>
+<li>⭐ <b>Open source</b> (GitHub stars, merged PRs to major projects)</li>
+<li>🏆 <b>AI hackathons</b> (Anthropic Builders, OpenAI DevDay, Mistral hackathons)</li>
+<li>📜 <b>2026-relevant certs</b> (DeepLearning.AI, HuggingFace, Anthropic, AWS ML)</li>
+</ul>
+</div>
+<div class="bg-white/10 p-4 rounded-lg">
+<h3 class="font-bold text-red-400 mb-2">❌ 2026 Red Flags</h3>
+<ul class="text-xs text-slate-200 space-y-1 list-disc ml-4">
+<li>📷 Photo on resume (banned globally now except where legally required)</li>
+<li>📋 Multi-column / tables / fancy graphics (breaks ATS)</li>
+<li>📝 "Career Objective" (replace with 2-line Summary)</li>
+<li>🚫 Zero GenAI mention (in 2026, this = not keeping up)</li>
+<li>💬 "Hardworking team player passionate about learning" — instant reject</li>
+<li>📏 3+ pages for freshers (recruiters stop reading at page 1.5)</li>
+<li>❌ No live demo links for projects (proof > promises)</li>
+</ul>
+</div>
+</div>
+<div class="mt-4 p-4 bg-white/5 rounded-lg">
+<h4 class="font-bold text-amber-300 mb-2 text-sm">📏 2026 Resume Length Rules</h4>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+<div class="bg-white/10 p-2 rounded"><b>0-3 yrs:</b> 1 page (strict)</div>
+<div class="bg-white/10 p-2 rounded"><b>3-7 yrs:</b> 2 pages max</div>
+<div class="bg-white/10 p-2 rounded"><b>7-15 yrs:</b> 2-3 pages</div>
+<div class="bg-white/10 p-2 rounded"><b>15+ yrs:</b> 3 pages + portfolio</div>
+</div>
+</div>
+<div class="mt-4 p-4 bg-purple-500/20 border border-purple-400 rounded-lg">
+<h4 class="font-bold text-purple-200 mb-1 text-sm">🚀 2026 Reality Check</h4>
+<p class="text-xs text-purple-100">In 2026, recruiters use AI to screen resumes, candidates use AI to write them, and the bar is "show, don't tell." A 1-page resume with 3 deployed GenAI projects beats a 3-page resume listing "familiar with ChatGPT." If your resume doesn't show you can build with AI, you're already behind.</p>
+</div>
+</div>
+</section>
+
+<!-- ============ RESULTS ============ -->
+<section id="results" class="hidden max-w-7xl mx-auto px-6 py-6 pb-20">
+
+<div class="flex flex-wrap items-center justify-between gap-3 mb-6 bg-white p-4 rounded-xl border border-slate-200">
+<div>
+<h2 class="text-xl font-bold text-slate-800">📊 Analysis Report</h2>
+<p class="text-xs text-slate-500">Generated: <span id="genTime"></span> · Time taken: <span id="genDuration">0</span>ms</p>
+</div>
+<div class="flex flex-wrap gap-2">
+<button onclick="downloadPDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">⬇ Download PDF</button>
+<button onclick="saveReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">💾 Save JSON</button>
+<button onclick="shareReport()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium">🔗 Share</button>
+<button onclick="newAnalysis()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium">🔄 New</button>
+</div>
+</div>
+
+<div id="reportContent" class="space-y-6">
+
+<!-- EXEC SUMMARY + DUAL SCORES -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="md:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># Executive Summary — The Real Talk</h3>
+<p id="execSummary" class="text-sm text-slate-600 leading-relaxed"></p>
+<div id="quickVerdict" class="mt-4 p-3 rounded-lg"></div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 p-5 fade-in">
+<h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 text-center">Match vs Truth Score</h3>
+<div class="flex justify-around items-center">
+<div class="text-center">
+<div id="matchScoreCircle" class="w-24 h-24 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-1"></div>
+<p class="text-xs text-slate-600 font-medium">Match Score</p>
+<p class="text-[10px] text-slate-500">What ATS sees</p>
+</div>
+<div class="text-3xl text-slate-300">vs</div>
+<div class="text-center">
+<div id="truthScoreCircle" class="w-24 h-24 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-1"></div>
+<p class="text-xs text-slate-600 font-medium">Truth Score</p>
+<p class="text-[10px] text-slate-500">What recruiter thinks</p>
+</div>
+</div>
+<p id="scoreExplanation" class="text-xs text-slate-500 mt-3 text-center leading-relaxed"></p>
+</div>
+</div>
+
+<!-- CHARTS -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3">📊 Skills Distribution</h3>
+<div class="relative" style="height:260px;"><canvas id="pieChart"></canvas></div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3">📈 Match by Category</h3>
+<div class="relative" style="height:260px;"><canvas id="barChart"></canvas></div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3">🕸 Skills Radar</h3>
+<div class="relative" style="height:260px;"><canvas id="radarChart"></canvas></div>
+</div>
+</div>
+
+<!-- SKILLS BREAKDOWN -->
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-4"># Skills Match Breakdown (Honest)</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+<h4 class="text-sm font-semibold text-emerald-700 mb-2">✅ Exact (<span id="exactCount">0</span>)</h4>
+<div id="exactSkills" class="text-xs"></div>
+</div>
+<div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
+<h4 class="text-sm font-semibold text-blue-700 mb-2">🔗 Transferable (<span id="relatedCount">0</span>)</h4>
+<div id="relatedSkills" class="text-xs"></div>
+</div>
+<div class="p-4 bg-red-50 rounded-xl border border-red-200">
+<h4 class="text-sm font-semibold text-red-700 mb-2">❌ Missing (<span id="missingCount">0</span>)</h4>
+<div id="missingSkills" class="text-xs"></div>
+</div>
+</div>
+</div>
+
+<!-- TRUTH CARD -->
+<div class="bg-gradient-to-br from-amber-50 to-red-50 rounded-2xl border-2 border-amber-300 p-6 fade-in">
+<div class="flex items-start gap-3">
+<span class="text-3xl">⚠️</span>
+<div class="flex-1">
+<h3 class="text-lg font-bold text-amber-900 mb-2"># Truth Card — What Your Resume Doesn't Say</h3>
+<p class="text-xs text-amber-800 mb-3">Hidden weaknesses a recruiter spots but never writes in feedback. Brutal honesty mode.</p>
+<div id="truthCard" class="space-y-2 text-sm"></div>
+</div>
+</div>
+</div>
+
+<!-- CRITICAL + EXPERIENCE -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># Critical Missing Skills (2026 Demand)</h3>
+<div id="criticalMissing" class="space-y-2"></div>
+<div class="mt-4 pt-4 border-t border-slate-200 space-y-2">
+<p class="text-xs text-slate-600">Critical Gap: <b id="criticalGap" class="text-red-600">0%</b></p>
+<p class="text-xs text-slate-600">Overall Gap: <b id="overallGap" class="text-orange-600">0%</b></p>
+</div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># Experience Relevance</h3>
+<div class="space-y-3">
+<div>
+<div class="flex justify-between text-xs mb-1"><span class="text-slate-600">Domain Fit</span><b id="domainScore">0</b>/100</div>
+<div class="w-full bg-slate-200 rounded-full h-2"><div id="domainBar" class="bg-blue-500 h-2 rounded-full progress-bar" style="width:0%"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-1"><span class="text-slate-600">Tech Stack Fit</span><b id="techScore">0</b>/100</div>
+<div class="w-full bg-slate-200 rounded-full h-2"><div id="techBar" class="bg-emerald-500 h-2 rounded-full progress-bar" style="width:0%"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-1"><span class="text-slate-600">Responsibility Match</span><b id="respScore">0</b>/100</div>
+<div class="w-full bg-slate-200 rounded-full h-2"><div id="respBar" class="bg-purple-500 h-2 rounded-full progress-bar" style="width:0%"></div></div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-1"><span class="text-slate-600">Seniority Fit</span><b id="seniorScore">0</b>/100</div>
+<div class="w-full bg-slate-200 rounded-full h-2"><div id="seniorBar" class="bg-amber-500 h-2 rounded-full progress-bar" style="width:0%"></div></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- PROJECTS + ATS -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># Project Analysis</h3>
+<div id="projectAnalysis" class="space-y-3 text-sm"></div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># ATS Real-World Check</h3>
+<div class="text-center mb-4">
+<p class="text-3xl font-bold" id="atsScore">0%</p>
+<p class="text-xs text-slate-500">ATS Pass Probability</p>
+</div>
+<div id="atsDetails" class="space-y-2 text-xs"></div>
+</div>
+</div>
+
+<!-- RECRUITER + HM -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># Recruiter Review (6-Second Scan)</h3>
+<div class="space-y-3 text-sm">
+<div class="win-card pl-3"><h4 class="text-emerald-700 font-semibold">What Works</h4><ul id="recStrengths" class="list-disc ml-5 text-slate-600 text-xs space-y-1 mt-1"></ul></div>
+<div class="truth-card pl-3"><h4 class="text-amber-700 font-semibold">Concerns</h4><ul id="recConcerns" class="list-disc ml-5 text-slate-600 text-xs space-y-1 mt-1"></ul></div>
+<div class="brutal-card pl-3"><h4 class="text-red-700 font-semibold">Red Flags</h4><ul id="recRedFlags" class="list-disc ml-5 text-slate-600 text-xs space-y-1 mt-1"></ul></div>
+<div class="pt-2 border-t border-slate-200"><p class="text-xs">Recruiter Call Probability: <b id="shortlistProb" class="text-brand-600">0%</b></p></div>
+</div>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># Hiring Manager Review</h3>
+<div id="hmDecision" class="mb-3"></div>
+<p id="hmJustification" class="text-xs text-slate-600 leading-relaxed"></p>
+</div>
+</div>
+
+<!-- BENCHMARK + ROADMAP -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># 2026 Industry Benchmark</h3>
+<div class="space-y-2 text-sm">
+<div class="flex justify-between p-2 bg-slate-50 rounded"><span>Bottom 50%</span><span class="font-semibold text-slate-500">~40%</span></div>
+<div class="flex justify-between p-2 bg-slate-100 rounded"><span>Average</span><span class="font-semibold">~50%</span></div>
+<div class="flex justify-between p-2 bg-blue-50 rounded"><span>Top 25%</span><span class="font-semibold text-blue-700">~65%</span></div>
+<div class="flex justify-between p-2 bg-emerald-50 rounded"><span>Top 10%</span><span class="font-semibold text-emerald-700">~78%</span></div>
+<div class="flex justify-between p-2 bg-purple-50 rounded"><span>Top 1%</span><span class="font-semibold text-purple-700">~90%</span></div>
+</div>
+<p id="benchmarkPos" class="text-xs text-slate-700 mt-3 p-2 bg-amber-50 rounded border border-amber-200"></p>
+</div>
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># 2026 Improvement Roadmap</h3>
+<div id="roadmap" class="space-y-2 text-sm max-h-96 overflow-y-auto pr-2"></div>
+</div>
+</div>
+
+<!-- INTERVIEW + HIRING -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-3"># Interview Readiness — Real 2026 Questions</h3>
+<div id="interviewPrep" class="space-y-2 text-sm max-h-96 overflow-y-auto pr-2"></div>
+</div>
+<div class="bg-gradient-to-br from-slate-900 to-brand-900 text-white rounded-2xl p-6 fade-in">
+<h3 class="text-lg font-bold mb-4"># Final Hiring Probability</h3>
+<div class="space-y-3">
+<div class="flex justify-between items-center"><span class="text-sm">🎯 ATS Pass</span><b id="finalATS" class="text-xl">0%</b></div>
+<div class="w-full bg-white/10 rounded-full h-1.5"><div id="atsBar" class="bg-emerald-400 h-1.5 rounded-full progress-bar" style="width:0%"></div></div>
+<div class="flex justify-between items-center mt-3"><span class="text-sm">👀 Recruiter Call</span><b id="finalShortlist" class="text-xl">0%</b></div>
+<div class="w-full bg-white/10 rounded-full h-1.5"><div id="shortBar" class="bg-blue-400 h-1.5 rounded-full progress-bar" style="width:0%"></div></div>
+<div class="flex justify-between items-center mt-3"><span class="text-sm">💻 Tech Interview</span><b id="finalInterview" class="text-xl">0%</b></div>
+<div class="w-full bg-white/10 rounded-full h-1.5"><div id="intBar" class="bg-purple-400 h-1.5 rounded-full progress-bar" style="width:0%"></div></div>
+<div class="flex justify-between items-center mt-3"><span class="text-sm">🎉 Offer</span><b id="finalOffer" class="text-xl">0%</b></div>
+<div class="w-full bg-white/10 rounded-full h-1.5"><div id="offBar" class="bg-amber-400 h-1.5 rounded-full progress-bar" style="width:0%"></div></div>
+</div>
+</div>
+</div>
+
+<!-- JOBS -->
+<div id="jobs" class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-2"># 🎯 Matching Companies (2026)</h3>
+<p class="text-xs text-slate-500 mb-4">Based on your profile. Apply strategically.</p>
+<div id="jobList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</div>
+
+<!-- JOB PLATFORMS -->
+<div class="bg-gradient-to-br from-emerald-50 to-cyan-50 rounded-2xl border-2 border-emerald-300 p-6 fade-in">
+<div class="flex items-center gap-3 mb-4">
+<span class="text-3xl">🌐</span>
+<div>
+<h3 class="text-lg font-bold text-slate-800"># Where to Apply — 2026 Job Platforms</h3>
+<p class="text-xs text-slate-600">Direct links to top companies & aggregators.</p>
+</div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+<a href="https://www.linkedin.com/jobs/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">💼</span><h4 class="font-bold text-slate-800 text-sm">LinkedIn Jobs</h4></div>
+<p class="text-xs text-slate-600 mb-2">All roles · 200M+ jobs</p>
+<p class="text-[10px] text-blue-600 font-medium">→ linkedin.com/jobs</p>
+</a>
+<a href="https://internshala.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🎓</span><h4 class="font-bold text-slate-800 text-sm">Internshala</h4></div>
+<p class="text-xs text-slate-600 mb-2">India internships · 100K+ listings</p>
+<p class="text-[10px] text-blue-600 font-medium">→ internshala.com</p>
+</a>
+<a href="https://www.naukri.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🇮🇳</span><h4 class="font-bold text-slate-800 text-sm">Naukri</h4></div>
+<p class="text-xs text-slate-600 mb-2">India's #1 job site</p>
+<p class="text-[10px] text-blue-600 font-medium">→ naukri.com</p>
+</a>
+<a href="https://wellfound.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🚀</span><h4 class="font-bold text-slate-800 text-sm">Wellfound</h4></div>
+<p class="text-xs text-slate-600 mb-2">Startup jobs · Equity + salary</p>
+<p class="text-[10px] text-blue-600 font-medium">→ wellfound.com</p>
+</a>
+<a href="https://www.glassdoor.co.in/Job/index.htm" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🏢</span><h4 class="font-bold text-slate-800 text-sm">Glassdoor</h4></div>
+<p class="text-xs text-slate-600 mb-2">Salary info + reviews</p>
+<p class="text-[10px] text-blue-600 font-medium">→ glassdoor.com</p>
+</a>
+<a href="https://www.indeed.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🔍</span><h4 class="font-bold text-slate-800 text-sm">Indeed</h4></div>
+<p class="text-xs text-slate-600 mb-2">Global job aggregator</p>
+<p class="text-[10px] text-blue-600 font-medium">→ indeed.com</p>
+</a>
+<a href="https://hirect.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">⚡</span><h4 class="font-bold text-slate-800 text-sm">Hirect</h4></div>
+<p class="text-xs text-slate-600 mb-2">Direct chat with founders</p>
+<p class="text-[10px] text-blue-600 font-medium">→ hirect.com</p>
+</a>
+<a href="https://www.ycombinator.com/jobs" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🦄</span><h4 class="font-bold text-slate-800 text-sm">Y Combinator Jobs</h4></div>
+<p class="text-xs text-slate-600 mb-2">Top US startups</p>
+<p class="text-[10px] text-blue-600 font-medium">→ ycombinator.com/jobs</p>
+</a>
+<a href="https://github.com/jobs" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🐙</span><h4 class="font-bold text-slate-800 text-sm">GitHub Jobs</h4></div>
+<p class="text-xs text-slate-600 mb-2">Developer roles · Remote</p>
+<p class="text-[10px] text-blue-600 font-medium">→ github.com/jobs</p>
+</a>
+<a href="https://www.instahyre.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">⚙️</span><h4 class="font-bold text-slate-800 text-sm">Instahyre</h4></div>
+<p class="text-xs text-slate-600 mb-2">India tech · AI matching</p>
+<p class="text-[10px] text-blue-600 font-medium">→ instahyre.com</p>
+</a>
+<a href="https://unstop.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🏆</span><h4 class="font-bold text-slate-800 text-sm">Unstop</h4></div>
+<p class="text-xs text-slate-600 mb-2">Hackathons · Internships</p>
+<p class="text-[10px] text-blue-600 font-medium">→ unstop.com</p>
+</a>
+<a href="https://www.cutshort.io/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">✂️</span><h4 class="font-bold text-slate-800 text-sm">Cutshort</h4></div>
+<p class="text-xs text-slate-600 mb-2">India tech · Fast hiring</p>
+<p class="text-[10px] text-blue-600 font-medium">→ cutshort.io</p>
+</a>
+<a href="https://weworkremotely.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🏡</span><h4 class="font-bold text-slate-800 text-sm">We Work Remotely</h4></div>
+<p class="text-xs text-slate-600 mb-2">Curated remote jobs</p>
+<p class="text-[10px] text-blue-600 font-medium">→ weworkremotely.com</p>
+</a>
+<a href="https://careers.google.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🔵</span><h4 class="font-bold text-slate-800 text-sm">Google Careers</h4></div>
+<p class="text-xs text-slate-600 mb-2">Direct apply at Google</p>
+<p class="text-[10px] text-blue-600 font-medium">→ careers.google.com</p>
+</a>
+<a href="https://www.amazon.jobs/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🟠</span><h4 class="font-bold text-slate-800 text-sm">Amazon Jobs</h4></div>
+<p class="text-xs text-slate-600 mb-2">Direct apply at Amazon</p>
+<p class="text-[10px] text-blue-600 font-medium">→ amazon.jobs</p>
+</a>
+<a href="https://careers.microsoft.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🟦</span><h4 class="font-bold text-slate-800 text-sm">Microsoft Careers</h4></div>
+<p class="text-xs text-slate-600 mb-2">Direct apply at Microsoft</p>
+<p class="text-[10px] text-blue-600 font-medium">→ careers.microsoft.com</p>
+</a>
+<a href="https://www.metacareers.com/" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🔷</span><h4 class="font-bold text-slate-800 text-sm">Meta Careers</h4></div>
+<p class="text-xs text-slate-600 mb-2">Direct apply at Meta</p>
+<p class="text-[10px] text-blue-600 font-medium">→ metacareers.com</p>
+</a>
+<a href="https://www.anthropic.com/careers" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🧡</span><h4 class="font-bold text-slate-800 text-sm">Anthropic Careers</h4></div>
+<p class="text-xs text-slate-600 mb-2">AI safety · Claude team</p>
+<p class="text-[10px] text-blue-600 font-medium">→ anthropic.com/careers</p>
+</a>
+<a href="https://openai.com/careers" target="_blank" class="block p-4 bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+<div class="flex items-center gap-2 mb-1"><span class="text-2xl">🟢</span><h4 class="font-bold text-slate-800 text-sm">OpenAI Careers</h4></div>
+<p class="text-xs text-slate-600 mb-2">AI research · GPT team</p>
+<p class="text-[10px] text-blue-600 font-medium">→ openai.com/careers</p>
+</a>
+</div>
+
+<div class="mt-4 p-4 bg-white border-l-4 border-amber-500 rounded">
+<p class="text-xs text-slate-700"><b>🎯 2026 Apply Smart:</b></p>
+<ul class="text-xs text-slate-600 mt-1 space-y-1 list-disc ml-5">
+<li>Apply to <b>10-15 targeted roles</b>, not 200 random ones.</li>
+<li>Tailor resume for each — change 3-5 keywords to match JD.</li>
+<li>Apply on <b>company career pages directly</b> (recruiters prefer these).</li>
+<li>Reach out to <b>2-3 employees</b> for referrals (after applying).</li>
+<li>For AI/ML roles: <b>GitHub + papers + projects</b> matter more than resume words.</li>
+</ul>
+</div>
+</div>
+
+<!-- LEARNING RESOURCES -->
+<div class="bg-white rounded-2xl border border-slate-200 p-6 fade-in">
+<h3 class="text-lg font-bold text-slate-800 mb-2"># 📚 2026 Learning Resources (Free/Paid)</h3>
+<p class="text-xs text-slate-500 mb-4">Specific platforms, real costs, real time estimates.</p>
+<div id="learningResources" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+</div>
+
+</div>
+</section>
+
+<!-- TOAST -->
+<div id="toast" class="fixed top-5 right-5 z-50 hidden"></div>
+
+<!-- FOOTER -->
+<footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs">
+<p>© 2024 ResumeAI Pro v3.2 · 2026 Edition · Built for students, by brutal honesty</p>
+</footer>
+
+<script>
+// ============ STATE ============
+let resumeText = "";
+let uploadedFile = null;
+let analysisResult = null;
+let pieChart = null, barChart = null, radarChart = null;
+
+// ============ SKILLS DATABASE (2026 - WITH GENAI) ============
+const SKILLS_DB = {
+languages: ['python','java','javascript','typescript','c++','c#','go','golang','rust','ruby','php','kotlin','swift','scala','r','matlab','perl','dart','elixir','haskell','sql','html','css','bash','shell','powershell','groovy','clojure','erlang','f#','ocaml','lisp'],
+frontend: ['react','reactjs','angular','vue','vuejs','svelte','nextjs','next.js','nuxt','nuxtjs','redux','mobx','tailwind','bootstrap','material ui','mui','chakra','sass','scss','less','webpack','vite','parcel','rollup','jquery','framer motion','three.js','d3','d3.js','storybook','figma','responsive design','pwa','spa','astro','remix'],
+backend: ['node.js','nodejs','express','expressjs','django','flask','fastapi','spring','springboot','spring boot','laravel','rails','ruby on rails','asp.net','.net','nestjs','nest.js','koa','gin','phoenix','grpc','graphql','rest api','restful','soap','middleware','authentication','authorization','oauth','jwt','session management','hono','elysia'],
+mobile: ['android','ios','flutter','react native','xamarin','ionic','jetpack compose','swift ui','kotlin multiplatform','flutter bloc','riverpod','provider','redux toolkit','expo'],
+databases: ['mysql','postgresql','postgres','mongodb','redis','cassandra','oracle','sql server','elasticsearch','dynamodb','firebase','supabase','sqlite','mariadb','neo4j','influxdb','timescaledb','cockroachdb','clickhouse','snowflake','bigquery','redshift','databricks'],
+cloud: ['aws','azure','gcp','google cloud','oracle cloud','digitalocean','heroku','vercel','netlify','cloudflare','lambda','ec2','s3','rds','eks','ecs','fargate','cloudformation','terraform','pulumi','ansible','chef','puppet','vagrant','cloudfront','route53','iam','vpc','cloudwatch','bedrock','sagemaker','vertex ai','azure openai'],
+devops: ['docker','kubernetes','k8s','jenkins','github actions','gitlab ci','circleci','travis ci','argo cd','argo workflow','prometheus','grafana','elk','datadog','splunk','new relic','nagios','ci/cd','devops','sre','microservices','serverless','helm','istio','linkerd','envoy','nginx','apache','haproxy','load balancer','datadog','pagerduty','opentelemetry','chaos engineering','gitops','crossplane','backstage'],
+data: ['pandas','numpy','scipy','matplotlib','seaborn','plotly','bokeh','power bi','tableau','looker','excel','spss','sas','stata','hadoop','spark','pyspark','hive','pig','kafka','airflow','dbt','etl','elt','data warehousing','data lake','data modeling','star schema','snowflake schema','olap','oltp','dbt','duckdb','polars'],
+// ===== 2026 GenAI-Forward ML =====
+ml: ['machine learning','deep learning','nlp','natural language processing','computer vision','tensorflow','pytorch','keras','scikit-learn','sklearn','xgboost','lightgbm','catboost','opencv','yolo','bert','gpt','transformers','huggingface','llm','mlops','mlflow','kubeflow','data science','statistics','linear algebra','calculus','probability','regression','classification','clustering','neural networks','cnn','rnn','lstm','transformer architecture','reinforcement learning','time series','anomaly detection'],
+// ===== 2026 GenAI-SPECIFIC =====
+genai: ['generative ai','gen ai','genai','llm','large language model','rag','retrieval augmented generation','prompt engineering','prompt tuning','fine-tuning','fine tuning','lora','qlora','peft','rlhf','dpo','instruction tuning','agentic ai','ai agents','autogen','crew ai','crewai','langgraph','langchain','llamaindex','llama index','vector database','vector db','pinecone','weaviate','chroma','chroma db','qdrant','milvus','embeddings','semantic search','text embedding','openai api','claude api','gemini api','mistral api','gpt-4','gpt-4o','claude 3.5','claude sonnet','claude opus','llama 3','mixtral','function calling','tool use','mcp','model context protocol','mcp servers','inference','vllm','ollama','llama.cpp','axolotl','unsloth','triton','trl','huggingface trl','sglang','tgi','text generation inference','stable diffusion','diffusion models','dall-e','midjourney','sora','multimodal','multi-modal','vision language model','vlm','speech recognition','whisper','tts','text to speech','claude code','cursor','windsurf','claude mcp','agent workflows','multi-agent','swarm intelligence','ai safety','alignment','red teaming','guardrails','ai ethics','responsible ai'],
+tools: ['git','github','gitlab','bitbucket','jira','confluence','slack','notion','figma','adobe xd','photoshop','illustrator','canva','postman','insomnia','swagger','openapi','vscode','intellij','pycharm','eclipse','android studio','xcode','unity','unreal engine','blender','autocad','solidworks','sentry','mixpanel','amplitude','hotjar','weights and biases','wandb','comet.ml','gradio','streamlit','replicate','huggingface spaces','cursor','windsurf','claude code','github copilot','cline','roocode'],
+methods: ['agile','scrum','kanban','lean','safe','tdd','bdd','oop','object oriented','functional programming','system design','data structures','dsa','algorithms','design patterns','unit testing','integration testing','end to end testing','mvc','mvvm','solid principles','clean architecture','microservices architecture','event driven architecture','serverless architecture','dbms','operating systems','computer networks','prompt engineering','chain of thought','few-shot learning','rag patterns','agent design'],
+soft: ['leadership','communication','teamwork','problem solving','analytical','time management','project management','stakeholder management','mentoring','public speaking','presentation','negotiation','critical thinking','adaptability','collaboration','ownership','accountability'],
+emerging: ['agentic workflows','mcp servers','computer use','claude computer use','openai operator','sora','veo','genie 3','world models','embodied ai','robotics foundation models','physical intelligence','figure ai','tesla optimus','1x technologies','ai chips','groq','cerebras','sambanova','amd mi300','nvidia blackwell','cuda','triton kernels','distributed training','megatron','deepspeed','fsdp','megablocks','mixture of experts','moe','sparse models','state space models','mamba','rwkv','retnet','hyena','reasoning models','o1','o3','claude extended thinking','deepseek r1','test time compute','chain of thought reasoning','self-consistency','tree of thoughts','graph of thoughts','reflexion','self-refine','constitutional ai']
+};
+
+// Related skills mapping (2026)
+const RELATED_SKILLS = {
+'react':['javascript','jsx','html','css','frontend','redux','nextjs','typescript','hooks','context api'],
+'angular':['typescript','javascript','html','css','frontend','rxjs','ngrx'],
+'vue':['javascript','html','css','frontend','vuex','pinia'],
+'node.js':['javascript','backend','express','npm','event loop','async'],
+'python':['programming','scripting','automation','backend','django','flask','fastapi','pandas'],
+'java':['oop','spring','backend','jvm','multithreading','collections'],
+'aws':['cloud','devops','ec2','s3','lambda','vpc','iam','cloudformation','cloudwatch','bedrock'],
+'docker':['devops','containers','kubernetes','deployment','dockerfile','compose'],
+'kubernetes':['docker','devops','orchestration','cloud','helm','kubectl','pods','services'],
+'machine learning':['python','data science','statistics','ai','tensorflow','pytorch','sklearn','regression','deep learning'],
+'llm':['python','transformers','huggingface','pytorch','prompt engineering','rag','fine-tuning','langchain','openai api','claude api'],
+'rag':['llm','vector database','langchain','llamaindex','embeddings','pinecone','chromadb','weaviate','semantic search'],
+'langchain':['llm','rag','openai','prompt engineering','vector database','agents','langgraph'],
+'vector database':['pinecone','weaviate','chroma','qdrant','embeddings','rag','semantic search'],
+'prompt engineering':['llm','openai','claude','gpt','chain of thought','few-shot','rag'],
+'agentic ai':['llm','autogen','crew ai','langgraph','multi-agent','function calling','mcp'],
+'fine-tuning':['pytorch','huggingface','lora','qlora','trl','axolotl','llm','transformers'],
+'transformers':['pytorch','huggingface','attention','encoder','decoder','llm','bert','gpt'],
+'pytorch':['python','machine learning','deep learning','neural networks','torch','cuda'],
+'next.js':['react','frontend','ssr','ssg','fullstack','vercel'],
+'typescript':['javascript','typed','frontend','backend','type safety'],
+'system design':['scalability','distributed systems','load balancing','caching','database sharding','microservices'],
+'data structures':['algorithms','dsa','arrays','linked lists','trees','graphs','hash maps','complexity'],
+'fastapi':['python','backend','api','async','pydantic','uvicorn'],
+'react native':['react','mobile','javascript','cross platform','expo'],
+'flutter':['dart','mobile','cross platform','widget','bloc'],
+'openai api':['llm','gpt','prompt engineering','function calling','embeddings','rag'],
+'claude api':['llm','anthropic','prompt engineering','mcp','function calling','rag'],
+'claude code':['anthropic','mcp','coding agent','claude api'],
+'mcp':['model context protocol','claude','anthropic','mcp servers','ai agents','tool use'],
+'autogen':['multi-agent','agentic ai','microsoft','llm'],
+'crew ai':['multi-agent','agentic ai','llm','autogen'],
+'langgraph':['langchain','agentic ai','multi-agent','llm','stateful agents'],
+'pinecone':['vector database','embeddings','rag','semantic search'],
+'chromadb':['vector database','embeddings','rag','open source'],
+'weaviate':['vector database','embeddings','rag','open source'],
+'huggingface':['transformers','pytorch','llm','fine-tuning','trl','peft','spaces'],
+'aws bedrock':['aws','llm','genai','rag','claude','llama','foundation models'],
+'sagemaker':['aws','machine learning','mlops','training','deployment'],
+'langchain':['llm','rag','openai','prompt engineering','vector database','agents'],
+'github copilot':['ai','coding','pair programming','ide'],
+'cursor':['ai','coding','ide','claude','gpt'],
+'rag':['llm','retrieval','vector database','embeddings','semantic search','langchain'],
+'claude':['anthropic','llm','claude api','claude code','mcp'],
+'gpt':['openai','llm','gpt-4','gpt-4o','openai api','chatgpt'],
+'gemini':['google','llm','gemini api','multimodal','vertex ai'],
+'mistral':['open source llm','mixtral','mistral api','european ai'],
+'groq':['ai chips','fast inference','llama','mixtral','llm'],
+'ollama':['local llm','llama','mistral','inference','llm'],
+'vllm':['fast inference','llm','serving','optimization'],
+'cuda':['gpu','nvidia','deep learning','pytorch','tensorflow','parallel computing'],
+'multimodal':['llm','vision language model','gpt-4v','claude','gemini','multimodal ai'],
+'computer vision':['opencv','yolo','cnn','image classification','object detection','segmentation'],
+'nlp':['llm','transformers','bert','gpt','huggingface','tokenization','embeddings'],
+'computer use':['claude','anthropic','agentic ai','mcp','computer use api'],
+'reinforcement learning':['rlhf','dpo','reward model','agent','openai','deepmind'],
+'deep learning':['neural networks','cnn','rnn','transformer','pytorch','tensorflow'],
+'data science':['python','pandas','numpy','sql','machine learning','statistics','visualization'],
+'sql':['mysql','postgresql','database','data','analytics','queries'],
+'docker':['containers','devops','kubernetes','dockerfile','compose'],
+'ci/cd':['devops','jenkins','github actions','gitlab','automation','deployment'],
+'git':['version control','github','gitlab','collaboration','branching','merging'],
+'redis':['cache','database','in-memory','pub sub','session management'],
+'postgresql':['sql','database','relational','acid','normalization'],
+'mongodb':['nosql','database','document database','mongoose','aggregation'],
+'graphql':['api','backend','query language','apollo','schema','resolvers'],
+'typescript':['javascript','typed','frontend','backend','type safety'],
+'next.js':['react','frontend','ssr','ssg','fullstack','vercel'],
+'kubernetes':['docker','devops','orchestration','cloud','helm','kubectl']
+};
+
+// 2026 Companies (with AI labs)
+const COMPANIES = [
+{name:'OpenAI', logo:'🟢', tier:'AI Lab', roles:['ML Engineer','Research Engineer','GenAI Intern'], skills:['python','pytorch','transformers','llm','rlhf','rag','fine-tuning']},
+{name:'Anthropic', logo:'🧡', tier:'AI Lab', roles:['AI Research','ML Engineer','Claude Engineer'], skills:['python','pytorch','claude','llm','rag','prompt engineering','mcp','agentic ai']},
+{name:'Google DeepMind', logo:'🔵', tier:'AI Lab', roles:['Research Engineer','ML Engineer','GenAI'], skills:['python','jax','pytorch','transformers','llm','reinforcement learning']},
+{name:'Mistral AI', logo:'⚫', tier:'AI Lab', roles:['ML Engineer','Research','Open Source'], skills:['python','pytorch','llm','transformers','open source','fine-tuning']},
+{name:'Perplexity AI', logo:'🟣', tier:'AI Startup', roles:['AI Engineer','Search Engineer','Backend'], skills:['python','llm','rag','search','fastapi','typescript','react']},
+{name:'Cohere', logo:'🔴', tier:'AI Startup', roles:['ML Engineer','Applied AI','Enterprise AI'], skills:['python','pytorch','llm','transformers','nlp','rag']},
+{name:'HuggingFace', logo:'🤗', tier:'AI Infra', roles:['ML Engineer','Open Source','DevRel'], skills:['python','transformers','pytorch','rust','llm','open source']},
+{name:'Google', logo:'🔵', tier:'FAANG', roles:['SWE Intern','ML Engineer','GenAI','Cloud'], skills:['python','java','go','kubernetes','tensorflow','system design','data structures']},
+{name:'Amazon', logo:'🟠', tier:'FAANG', roles:['SDE','DevOps','Data','ML','Bedrock'], skills:['java','aws','python','bedrock','dynamodb','lambda','microservices']},
+{name:'Microsoft', logo:'🟦', tier:'FAANG', roles:['SDE','Azure AI','Copilot','.NET'], skills:['c#','.net','azure','typescript','openai api','python','copilot']},
+{name:'Meta', logo:'🔷', tier:'FAANG', roles:['SWE','React','ML','Llama Team'], skills:['react','python','pytorch','llama','llm','hack','php']},
+{name:'Apple', logo:'🍎', tier:'FAANG', roles:['iOS','SDE','ML','Apple Intelligence'], skills:['swift','objective-c','ios','xcode','machine learning','metal','apple intelligence']},
+{name:'Netflix', logo:'🎬', tier:'FAANG', roles:['SDE','Data','Streaming'], skills:['java','kotlin','python','aws','microservices','kafka']},
+{name:'Nvidia', logo:'🟢', tier:'AI/Hardware', roles:['ML Engineer','CUDA','GenAI'], skills:['cuda','c++','python','pytorch','computer vision','triton']},
+{name:'Tesla', logo:'🔴', tier:'AI/Hardware', roles:['FSD Engineer','Optimus','Cortex'], skills:['python','pytorch','computer vision','c++','cuda','robotics']},
+{name:'Cursor', logo:'⚫', tier:'AI Startup', roles:['Founding Engineer','AI Engineer','IDE'], skills:['typescript','rust','react','llm','claude api','cursor']},
+{name:'Windsurf', logo:'🌊', tier:'AI Startup', roles:['AI Engineer','IDE Dev'], skills:['typescript','rust','llm','claude','ide']},
+{name:'Replit', logo:'🟠', tier:'AI Startup', roles:['Full Stack','AI Engineer'], skills:['typescript','react','python','llm','claude','replit agent']},
+{name:'Scale AI', logo:'⚖️', tier:'AI Startup', roles:['ML Engineer','RLHF','Data'], skills:['python','pytorch','llm','rlhf','data labeling','ml']},
+{name:'Flipkart', logo:'🛒', tier:'Indian Unicorn', roles:['SDE','Data Scientist','Frontend'], skills:['java','python','react','node.js','mongodb','kafka']},
+{name:'Razorpay', logo:'💳', tier:'Startup', roles:['SDE','Full Stack','DevOps'], skills:['node.js','react','go','aws','microservices','docker']},
+{name:'Swiggy', logo:'🍔', tier:'Unicorn', roles:['SDE','Data','Android'], skills:['kotlin','java','python','kafka','aws']},
+{name:'Zerodha', logo:'📈', tier:'Profitable', roles:['SDE','Full Stack','Data'], skills:['go','python','react','postgresql','c']},
+{name:'Cred', logo:'💎', tier:'Unicorn', roles:['SDE','Android','iOS','Backend'], skills:['java','kotlin','swift','node.js','aws']},
+{name:'PhonePe', logo:'📱', tier:'Unicorn', roles:['SDE','Backend','Data'], skills:['java','spring','kafka','mongodb','aws']},
+{name:'Infosys', logo:'🔶', tier:'Service', roles:['Intern','PP','DSE'], skills:['java','spring','sql','aws','agile']},
+{name:'TCS', logo:'🟢', tier:'Service', roles:['Ninja','Digital'], skills:['java','python','sql','cloud','agile']},
+{name:'Wipro', logo:'🔷', tier:'Service', roles:['Intern','Project'], skills:['java','aws','python','sql','docker']},
+{name:'IBM', logo:'🔵', tier:'Service', roles:['SDE','Data','Watson'], skills:['python','java','watson','cloud','machine learning']},
+{name:'Goldman Sachs', logo:'🟡', tier:'Finance', roles:['Intern','Analyst','Quant'], skills:['java','python','c++','sql','finance']},
+{name:'JP Morgan', logo:'🔵', tier:'Finance', roles:['SDE','Quant','Analyst'], skills:['java','python','spark','kafka','sql']},
+{name:'Adobe', logo:'🟥', tier:'Product', roles:['SDE','Frontend','ML','Firefly'], skills:['javascript','react','java','python','typescript','firefly']},
+{name:'Salesforce', logo:'☁️', tier:'SaaS', roles:['SDE','Agentforce'], skills:['java','apex','javascript','salesforce','agentforce']},
+{name:'Oracle', logo:'🔴', tier:'Product', roles:['SDE','DBA','Cloud'], skills:['java','sql','plsql','oracle db']},
+{name:'Uber', logo:'⚫', tier:'Product', roles:['SDE','Data','Backend'], skills:['java','go','python','kafka']}
+];
+
+// 2026 Student Sample JDs
+const SAMPLE_JDS = {
+'genai-intern': `GenAI Engineering Intern
+Company: Anthropic India (Remote)
+
+About the role:
+Join the team building Claude — the world's safest AI assistant. Work on production GenAI systems used by millions.
+
+Required:
+- Strong Python, PyTorch fundamentals
+- Hands-on experience with LLMs (HuggingFace Transformers, OpenAI API, Claude API)
+- Built at least 1 production RAG system or AI agent
+- Understanding of prompt engineering, embeddings, vector databases
+- Familiarity with fine-tuning (LoRA/QLoRA/RLHF)
+
+Preferred:
+- Agentic AI frameworks (LangGraph, AutoGen, CrewAI)
+- MCP (Model Context Protocol) experience
+- Open source contributions
+- Published research or technical blog (NeurIPS, HuggingFace blog)
+- Experience with Claude Code, Cursor, or similar AI coding tools
+
+Skills: Python, PyTorch, LLM, RAG, Prompt Engineering, Vector Database, Fine-tuning, LangChain, Claude API, OpenAI API, Agentic AI, MCP, HuggingFace, Transformers`,
+
+'sde-2026': `SDE Intern - 2026 Batch
+Company: Google India
+
+Required Qualifications:
+- Pursuing Bachelor's/Master's in CS, graduating 2026
+- Strong Data Structures & Algorithms
+- Proficiency in Java, Python, C++, or Go
+- OOP, OS, DBMS, CN fundamentals
+- System Design basics
+
+Preferred:
+- GenAI project experience (RAG, agents, fine-tuning)
+- Cloud platforms (GCP/AWS/Azure)
+- Open source contributions
+- Distributed systems understanding
+
+Skills: Java, Python, Data Structures, Algorithms, System Design, Distributed Systems, OOP, Operating Systems, DBMS, GCP, GenAI, RAG`,
+
+'data-intern': `Data Science Intern
+Company: Amazon India
+
+Required:
+- B.Tech/M.Tech in CS/Stats/Math (2026 batch)
+- Strong Python (pandas, numpy, scikit-learn)
+- SQL expertise
+- Statistics & probability
+- ML fundamentals (regression, classification, time series)
+
+Preferred:
+- GenAI/LLM experience
+- Deep learning (PyTorch/TensorFlow)
+- Spark, Kafka, Airflow
+- AWS (Bedrock, SageMaker)
+- NLP/CV projects
+
+Skills: Python, SQL, Machine Learning, Statistics, Pandas, NumPy, Scikit-learn, PyTorch, AWS, Spark, LLM, GenAI`,
+
+'web-dev': `Full Stack Developer Intern
+Company: Razorpay
+
+Requirements:
+- Strong JavaScript/TypeScript
+- React.js, Next.js
+- Node.js, Express, REST APIs
+- PostgreSQL or MongoDB
+- Git, Docker
+- Auth (OAuth, JWT)
+
+Nice to have:
+- AI integration (OpenAI API, Claude API)
+- AWS/GCP deployment
+- Redis, Kafka
+- Microservices
+
+Skills: JavaScript, TypeScript, React, Next.js, Node.js, Express, PostgreSQL, MongoDB, Docker, AWS, OpenAI API, Claude API, Git`,
+
+'ml-engineer': `ML Engineer Intern
+Company: Nvidia
+
+Required:
+- Strong Python, PyTorch
+- Deep learning (CNNs, RNNs, Transformers)
+- Computer Vision or NLP
+- Linear algebra, calculus, statistics
+- CUDA basics (preferred)
+
+Preferred:
+- LLM fine-tuning, RAG
+- Vector databases (Pinecone, Weaviate)
+- LangChain/LlamaIndex
+- NeurIPS/ICML/CVPR publications
+- Triton, vLLM
+
+Skills: Python, PyTorch, Deep Learning, Computer Vision, NLP, CUDA, LLM, RAG, Vector Database, LangChain, Triton, vLLM, Transformers`,
+
+'devops': `DevOps / SRE Intern
+Company: Flipkart
+
+Required:
+- Linux, bash scripting
+- Docker, Kubernetes
+- CI/CD (GitHub Actions, ArgoCD)
+- AWS
+- Networking (TCP/IP, DNS, load balancers)
+- Monitoring (Prometheus, Grafana)
+
+Nice to have:
+- Terraform, Ansible
+- GitOps
+- MLOps experience
+- AI infrastructure (GPU scheduling, vLLM serving)
+
+Skills: Linux, Docker, Kubernetes, GitHub Actions, ArgoCD, AWS, Terraform, Prometheus, Grafana, Python, Bash, MLOps`
+};
+
+// ============ TOAST ============
+function toast(msg, type='success') {
+const t = document.getElementById('toast');
+const colors = {success:'bg-emerald-500',error:'bg-red-500',info:'bg-blue-500',warning:'bg-amber-500'};
+t.className = `fixed top-5 right-5 z-50 ${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg text-sm font-medium max-w-md`;
+t.textContent = msg;
+t.classList.remove('hidden');
+clearTimeout(window._toastTimer);
+window._toastTimer = setTimeout(() => t.classList.add('hidden'), 4000);
+}
+
+// ============ FILE UPLOAD ============
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('resumeFile');
+
+['dragenter','dragover','dragleave','drop'].forEach(e => uploadArea.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }));
+['dragenter','dragover'].forEach(e => uploadArea.addEventListener(e, () => uploadArea.classList.add('drag-over')));
+['dragleave','drop'].forEach(e => uploadArea.addEventListener(e, () => uploadArea.classList.remove('drag-over')));
+uploadArea.addEventListener('drop', e => { if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+if (file.size > 10*1024*1024) { toast('File too large! Max 10MB','error'); return; }
+uploadedFile = file;
+document.getElementById('fileName').textContent = file.name;
+document.getElementById('fileInfo').classList.remove('hidden');
+document.getElementById('saveBtn').classList.remove('hidden');
+document.getElementById('fileStatus').textContent = 'Extracting...';
+const ext = file.name.split('.').pop().toLowerCase();
+if (ext==='pdf') extractPDF(file);
+else if (ext==='docx'||ext==='doc') extractDOCX(file);
+else if (ext==='txt') extractTXT(file);
+else if (['jpg','jpeg','png','gif','bmp'].includes(ext)) extractImage(file);
+else toast('Unsupported format','error');
+}
+
+function removeFile() {
+uploadedFile = null; resumeText = '';
+fileInput.value = '';
+document.getElementById('fileInfo').classList.add('hidden');
+document.getElementById('saveBtn').classList.add('hidden');
+document.getElementById('results').classList.add('hidden');
+toast('Cleared','info');
+}
+
+async function extractPDF(file) {
+try {
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const buf = await file.arrayBuffer();
+const pdf = await pdfjsLib.getDocument(buf).promise;
+let text = '';
+for (let i=1; i<=pdf.numPages; i++) {
+const page = await pdf.getPage(i);
+const content = await page.getTextContent();
+text += content.items.map(it => it.str).join(' ') + '\n';
+}
+resumeText = text;
+document.getElementById('fileStatus').textContent = `✅ ${pdf.numPages} pages · ${text.length} chars`;
+toast('PDF extracted');
+} catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+async function extractDOCX(file) {
+try {
+const buf = await file.arrayBuffer();
+const result = await mammoth.extractRawText({arrayBuffer: buf});
+resumeText = result.value;
+document.getElementById('fileStatus').textContent = `✅ ${result.value.length} chars`;
+toast('DOCX extracted');
+} catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+function extractTXT(file) {
+const reader = new FileReader();
+reader.onload = e => {
+resumeText = e.target.result;
+document.getElementById('fileStatus').textContent = `✅ ${resumeText.length} chars`;
+toast('Loaded');
+};
+reader.readAsText(file);
+}
+
+async function extractImage(file) {
+toast('🔍 OCR...','info');
+try {
+const {data:{text}} = await Tesseract.recognize(file, 'eng');
+resumeText = text;
+document.getElementById('fileStatus').textContent = `✅ OCR · ${text.length} chars`;
+toast('OCR complete');
+} catch(e) { toast('OCR Error','error'); }
+}
+
+function saveResume() {
+if (!resumeText) return;
+const blob = new Blob([resumeText], {type:'text/plain'});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = `resume_${uploadedFile?.name || 'extracted'}.txt`; a.click();
+URL.revokeObjectURL(url);
+toast('Resume saved');
+}
+
+function loadSampleJD(key) {
+document.getElementById('jobDesc').value = SAMPLE_JDS[key];
+toast('2026 Student JD loaded');
+}
+
+// ============ VOICE ============
+let recognition = null, isListening = false;
+function toggleVoice() {
+const lang = document.getElementById('langSelect').value;
+if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+toast('Voice needs Chrome','error'); return;
+}
+if (isListening) { recognition.stop(); return; }
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+recognition = new SR();
+recognition.lang = lang; recognition.continuous = true; recognition.interimResults = false;
+const ta = document.getElementById('jobDesc');
+const btn = document.getElementById('micBtn'), mt = document.getElementById('micText'), rs = document.getElementById('recStatus');
+recognition.onstart = () => { isListening=true; btn.classList.add('listening'); mt.textContent='Listening'; rs.textContent='🎙 Speak'; };
+recognition.onresult = e => {
+let txt='';
+for (let i=e.resultIndex; i<e.results.length; i++) txt += e.results[i][0].transcript;
+ta.value += (ta.value && !ta.value.endsWith(' ') ? ' ' : '') + txt;
+};
+recognition.onerror = e => { toast('Voice error','error'); resetMic(); };
+recognition.onend = () => { isListening=false; btn.classList.remove('listening'); mt.textContent='Voice'; };
+recognition.start();
+}
+function resetMic() { isListening=false; document.getElementById('micBtn').classList.remove('listening'); document.getElementById('micText').textContent='Voice'; }
+
+// ============ ANALYSIS ENGINE (OPTIMIZED - FAST) ============
+function getAllSkills() { return [].concat(...Object.values(SKILLS_DB)); }
+
+function extractSkills(text) {
+const lower = (text||'').toLowerCase();
+const found = new Set();
+for (const skill of getAllSkills()) {
+const escaped = skill.replace(/[.+*?^$()|[\]{}\\]/g, '\\$&');
+const re = new RegExp('(?:^|\\W|_)('+escaped+')(?:$|\\W|_)','i');
+if (re.test(' '+lower+' ')) found.add(skill);
+}
+return [...found];
+}
+
+function categorizeSkills(resumeSkills, jobSkills) {
+const exact = jobSkills.filter(s => resumeSkills.includes(s));
+const missing = jobSkills.filter(s => !resumeSkills.includes(s));
+const related = [];
+for (const m of missing.slice(0, 20)) {
+if (RELATED_SKILLS[m]) {
+for (const r of RELATED_SKILLS[m]) {
+if (resumeSkills.includes(r) && !related.includes(r)) related.push(r);
+}
+}
+}
+return {exact, missing, related};
+}
+
+function scoreImportance(skill, jd) {
+const lower = jd.toLowerCase();
+const idx = lower.indexOf(skill);
+if (idx === -1) return 'nice-to-have';
+const before = lower.substring(Math.max(0, idx-50), idx);
+if (/required|must|need|essential|critical|minimum|mandatory/.test(before)) return 'critical';
+if (/experience|knowledge|proficien|strong|familiar/.test(before)) return 'important';
+if (/plus|bonus|nice|preferred/.test(before)) return 'nice-to-have';
+return 'important';
+}
+
+function detectProjects(text) {
+const projects = [];
+const projMatch = text.match(/(PROJECTS|Projects|projects)[\s\S]{0,2500}/);
+if (projMatch) {
+const items = projMatch[0].split(/\n\s*(?:\d+\.|-|•|·|\\*)\s*/).slice(1, 7);
+for (const item of items) {
+const cleaned = item.trim().split('\n').slice(0,5).join(' ').trim();
+if (cleaned.length > 30) projects.push(cleaned);
+}
+}
+return projects.slice(0, 5);
+}
+
+function generateTruthCard(r) {
+const truths = [];
+if (r.resumeText.length < 1500) truths.push('📏 <b>Resume is too short</b> ('+r.resumeText.length+' chars). 2026 standard: 2000-3500 chars for a 1-page resume.');
+if (r.resumeText.length > 5000) truths.push('📏 <b>Resume is too long</b> for a student. Keep it 1 page.');
+if (!/\d+%|\d+x|\d+ (users|requests|api|ms|seconds)/i.test(r.resumeText)) truths.push('🔢 <b>Zero quantifiable achievements</b>. Add numbers: "served 5K users", "reduced cost by 40%".');
+if (!/github\.com/i.test(r.resumeText)) truths.push('🔗 <b>No GitHub link</b>. In 2026, no GitHub = no proof of coding ability.');
+if (!/linkedin\.com/i.test(r.resumeText)) truths.push('💼 <b>No LinkedIn</b>. 87% of recruiters check LinkedIn first.');
+if (/hardworking|team player|passionate|self-motivated|go-getter/i.test(r.resumeText)) truths.push('🚫 <b>Buzzword soup detected</b>. "'+(r.resumeText.match(/hardworking|team player|passionate|self-motivated|go-getter/i)||[''])[0]+'" = white noise. Replace with proof.');
+if (!/llm|rag|genai|generative|prompt|fine-tuning|claude|openai|gpt|agentic/i.test(r.resumeText)) truths.push('🤖 <b>Zero GenAI mention in 2026</b>. This is now a baseline expectation for any tech role. Add at least 1 GenAI project or skill.');
+if (r.projects.length === 0) truths.push('🚨 <b>NO PROJECTS SECTION</b>. Deal-breaker for 60% of recruiter decisions.');
+else if (r.projects.length < 2) truths.push('⚠️ <b>Too few projects</b>. You have '+r.projects.length+'. Standard: 3-4 quality projects with live demos.');
+if (r.scores.expYears === 0 && !/intern/i.test(r.resumeText)) truths.push('💼 <b>No internship experience</b>. 78% of selected candidates have one.');
+if (!/built|developed|designed|implemented|architected|optimized|led|deployed|fine-tuned/i.test(r.resumeText)) truths.push('✍️ <b>Weak action verbs</b>. Use: Built, Architected, Deployed, Fine-tuned, Optimized, Scaled, Led.');
+if (r.exact.length > 0 && r.exact.length < 5) truths.push('🎯 <b>Skill density too low</b>. You list '+r.exact.length+' matching skill(s). Aim for 10-15 in 2026.');
+if (!/certif/i.test(r.resumeText)) truths.push('📜 <b>No certifications</b>. 2026 relevant: DeepLearning.AI, HuggingFace, Anthropic, AWS ML.');
+if (!/hackathon|award|winner|publication|research|blog|talk|speaker/i.test(r.resumeText)) truths.push('🏆 <b>No achievements/publications/talks</b>. Join Anthropic AI Builders hackathon or publish a paper/blog.');
+if (!/cgpa|gpa|percentage/i.test(r.resumeText)) truths.push('🎓 <b>CGPA not mentioned</b>. Top companies have CGPA cutoffs.');
+if (!/\d{4}\s*[-–]\s*(\d{4}|present|current)/i.test(r.resumeText)) truths.push('📅 <b>Date format unclear</b>. Use "MMM YYYY - MMM YYYY".');
+if (truths.length === 0) truths.push('✅ No major hidden weaknesses. Resume is solid. Focus on interview prep and live project demos.');
+return truths;
+}
+
+// ===== OPTIMIZED: Real processing time, no fake delay =====
+function analyzeResume() {
+const jd = document.getElementById('jobDesc').value.trim();
+if (!resumeText) { toast('⚠️ Upload your resume first','error'); return; }
+if (!jd) { toast('⚠️ Paste a job description','error'); return; }
+if (resumeText.length < 200) { toast('⚠️ Resume too short','error'); return; }
+
+const startTime = performance.now();
+
+// Run analysis immediately (no fake delay)
+runAnalysis(jd);
+
+const duration = Math.round(performance.now() - startTime);
+document.getElementById('genDuration').textContent = duration;
+document.getElementById('results').classList.remove('hidden');
+document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+toast(`✅ Analysis complete in ${duration}ms`);
+}
+
+function runAnalysis(jd) {
+const resumeSkills = extractSkills(resumeText);
+const jobSkills = extractSkills(jd);
+const {exact, missing, related} = categorizeSkills(resumeSkills, jobSkills);
+const projects = detectProjects(resumeText);
+
+const skillMatchPct = jobSkills.length > 0 ? (exact.length / jobSkills.length) * 100 : 0;
+const hasMetrics = /\d+%|\d+x|\d+ (users|requests)/i.test(resumeText) ? 1 : 0;
+const hasGithub = /github/i.test(resumeText) ? 1 : 0;
+const hasLinkedin = /linkedin/i.test(resumeText) ? 1 : 0;
+const hasInternship = /intern/i.test(resumeText) ? 1 : 0;
+const hasProjects = projects.length >= 2 ? 1 : 0;
+const hasActionVerbs = /built|developed|designed|implemented|optimized|architected|fine-tuned/i.test(resumeText) ? 1 : 0;
+const hasGenAI = /llm|rag|genai|generative|prompt|fine-tuning|claude|openai|gpt|agentic|vector database|langchain/i.test(resumeText) ? 1 : 0;
+const truthSignals = hasMetrics + hasGithub + hasLinkedin + hasInternship + hasProjects + hasActionVerbs + hasGenAI;
+const truthPenalty = (7 - truthSignals) * 5;
+const matchScore = Math.min(95, Math.round(skillMatchPct));
+const truthScore = Math.max(15, Math.min(95, Math.round(skillMatchPct - truthPenalty + (related.length * 2))));
+
+const expMatch = (resumeText.match(/(\d+)\+?\s*(years?|yrs?)/i) || [])[1];
+const expYears = expMatch ? parseInt(expMatch) : 0;
+const jdYearsMatch = (jd.match(/(\d+)\+?\s*(years?|yrs?)/i) || [])[1];
+const jdYears = jdYearsMatch ? parseInt(jdYearsMatch) : 1;
+const expScore = expYears >= jdYears ? 100 : Math.max(0, Math.round((expYears/jdYears)*100));
+
+const domainScore = Math.min(100, Math.round(skillMatchPct * 1.1));
+const techScore = Math.min(100, Math.round(skillMatchPct + (related.length * 2)));
+const actionVerbs = ['built','developed','designed','implemented','led','managed','created','architected','deployed','optimized','scaled','migrated','refactored','mentored','collaborated','delivered','engineered','fine-tuned'];
+const verbCount = actionVerbs.filter(v => resumeText.toLowerCase().includes(v)).length;
+const respScore = Math.min(100, verbCount * 12);
+
+const projectScore = Math.min(100, projects.length * 20 + (projects.some(p => /\d+%|\d+ (users|requests|ms)/i.test(p)) ? 20 : 0));
+
+let atsBase = 40;
+if (exact.length >= 5) atsBase += 25;
+else if (exact.length >= 3) atsBase += 15;
+if (resumeText.length >= 1500 && resumeText.length <= 4000) atsBase += 10;
+if (hasGithub) atsBase += 5;
+if (hasLinkedin) atsBase += 5;
+if (hasGenAI) atsBase += 10;
+if (hasMetrics) atsBase += 5;
+const atsScore = Math.min(98, atsBase);
+
+analysisResult = {
+matchScore, truthScore, exact, missing, related,
+jobSkills, resumeSkills, projects, jd, resumeText,
+scores: {skillMatchPct, expScore, expYears, jdYears, domainScore, techScore, respScore, projectScore, atsScore, truthSignals, hasGenAI, hasMetrics, hasGithub, hasLinkedin, hasInternship, hasActionVerbs}
+};
+
+renderResults(analysisResult);
+}
+
+function renderResults(r) {
+document.getElementById('genTime').textContent = new Date().toLocaleString();
+
+const summary = `<b>Match Score: ${r.matchScore}%</b> vs <b>Truth Score: ${r.truthScore}%</b>.<br><br>` +
+`You match <b>${r.exact.length}/${r.jobSkills.length}</b> required skills (${r.matchScore}%). ` +
+`After deeper analysis, your real employability is closer to <b>${r.truthScore}%</b> because of hidden resume weaknesses.<br><br>` +
+`<b>2026 Honest take:</b> ${r.matchScore >= 75 ? 'Strong shot. Polish resume, prep 3-4 projects deeply, practice DSA + GenAI fundamentals, apply to 10-15 targeted companies.' : r.matchScore >= 50 ? 'In the running but not hire-ready. Bridge skill gaps, build strong projects, aim for 30+ applications.' : 'Honest reality: with this profile, you\'ll struggle. Spend 3-6 months closing gaps, then re-enter.'}`;
+document.getElementById('execSummary').innerHTML = summary;
+
+const verdict = r.truthScore >= 70
+? '<div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm"><b class="text-emerald-800">✅ Apply with confidence.</b> Don\'t stop — strengthen projects and prep interviews.</div>'
+: r.truthScore >= 50
+? '<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm"><b class="text-amber-800">⚠️ Borderline.</b> Apply, but expect 1 in 5 to convert.</div>'
+: '<div class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm"><b class="text-red-800">🚨 Not ready yet.</b> Invest 3-6 months in skills first.</div>';
+document.getElementById('quickVerdict').innerHTML = verdict;
+
+const matchColor = r.matchScore >= 75 ? 'bg-emerald-500' : r.matchScore >= 50 ? 'bg-amber-500' : 'bg-red-500';
+const truthColor = r.truthScore >= 70 ? 'bg-emerald-600' : r.truthScore >= 50 ? 'bg-amber-600' : 'bg-red-600';
+document.getElementById('matchScoreCircle').className = `w-24 h-24 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-1 ${matchColor}`;
+document.getElementById('matchScoreCircle').textContent = r.matchScore + '%';
+document.getElementById('truthScoreCircle').className = `w-24 h-24 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-1 ${truthColor}`;
+document.getElementById('truthScoreCircle').textContent = r.truthScore + '%';
+document.getElementById('scoreExplanation').textContent = `Match: keyword overlap. Truth: penalized for missing resume signals (GenAI, metrics, GitHub, etc).`;
+
+const renderChips = (arr, color) => arr.length ? arr.map(s => `<span class="skill-chip ${color}">${s}</span>`).join('') : '<em class="text-slate-400 text-xs">None</em>';
+document.getElementById('exactCount').textContent = r.exact.length;
+document.getElementById('exactSkills').innerHTML = renderChips(r.exact, 'bg-emerald-200 text-emerald-900');
+document.getElementById('relatedCount').textContent = r.related.length;
+document.getElementById('relatedSkills').innerHTML = renderChips(r.related, 'bg-blue-200 text-blue-900');
+document.getElementById('missingCount').textContent = r.missing.length;
+document.getElementById('missingSkills').innerHTML = renderChips(r.missing.slice(0, 25), 'bg-red-200 text-red-900');
+
+document.getElementById('truthCard').innerHTML = generateTruthCard(r).map(t => `<div class="p-3 bg-white/70 rounded border-l-4 border-amber-500 text-sm">${t}</div>`).join('');
+
+const critMissing = r.missing.filter(s => scoreImportance(s, r.jd) === 'critical').slice(0, 10);
+document.getElementById('criticalMissing').innerHTML = critMissing.length
+? critMissing.map(s => {
+const imp = scoreImportance(s, r.jd);
+const color = imp === 'critical' ? 'bg-red-50 border-red-300 text-red-800' : imp === 'important' ? 'bg-orange-50 border-orange-300 text-orange-800' : 'bg-yellow-50 border-yellow-300 text-yellow-800';
+return `<div class="flex items-center justify-between p-2 ${color} border-l-4 rounded text-sm"><span>${s}</span><span class="text-xs font-bold uppercase">${imp}</span></div>`;
+}).join('')
+: '<p class="text-sm text-emerald-600">✅ No critical skills missing!</p>';
+const critGapPct = r.jobSkills.length > 0 ? Math.round((critMissing.length / r.jobSkills.length) * 100) : 0;
+const overallGapPct = r.jobSkills.length > 0 ? Math.round((r.missing.length / r.jobSkills.length) * 100) : 0;
+document.getElementById('criticalGap').textContent = critGapPct + '%';
+document.getElementById('overallGap').textContent = overallGapPct + '%';
+
+setBar('domain', r.scores.domainScore);
+setBar('tech', r.scores.techScore);
+setBar('resp', r.scores.respScore);
+document.getElementById('seniorScore').textContent = r.scores.expYears > 0 ? (r.scores.expYears >= 5 ? 95 : r.scores.expYears >= 3 ? 80 : 60) : (r.scores.hasGenAI ? 50 : 30);
+document.getElementById('seniorBar').style.width = (r.scores.expYears > 0 ? (r.scores.expYears >= 5 ? 95 : r.scores.expYears >= 3 ? 80 : 60) : (r.scores.hasGenAI ? 50 : 30)) + '%';
+
+document.getElementById('projectAnalysis').innerHTML = r.projects.length
+? r.projects.map(p => {
+const hasM = /\d+%|\d+ (users|requests|ms)/i.test(p);
+return `<div class="p-3 bg-slate-50 rounded-lg border-l-4 ${hasM?'border-emerald-500':'border-amber-500'}">
+<p class="text-xs text-slate-700">${p.substring(0,200)}${p.length>200?'...':''}</p>
+<p class="text-[10px] mt-1 ${hasM?'text-emerald-600':'text-amber-600'}">${hasM?'✅ Has metrics':'⚠️ Add metrics (users, %, latency)'}</p>
+</div>`;
+}).join('') + `<p class="text-xs text-slate-500 mt-2">💡 2026 standard: 3-4 deployed projects with live demos.</p>`
+: '<p class="text-sm text-red-600 font-medium">🚨 No projects detected. Add 3-4 immediately.</p>';
+
+document.getElementById('atsScore').textContent = r.scores.atsScore + '%';
+const resumeLen = r.resumeText.length;
+document.getElementById('atsDetails').innerHTML = `
+<div class="flex justify-between p-2 bg-slate-50 rounded"><span>📏 Length</span><b class="${resumeLen < 1000 ? 'text-red-600' : resumeLen > 4500 ? 'text-amber-600' : 'text-emerald-600'}">${resumeLen} chars</b></div>
+<div class="flex justify-between p-2 bg-slate-50 rounded"><span>🎯 Skills Matched</span><b class="text-emerald-600">${r.exact.length} / ${r.jobSkills.length}</b></div>
+<div class="flex justify-between p-2 bg-slate-50 rounded"><span>🤖 GenAI Mention</span><b class="${r.scores.hasGenAI?'text-emerald-600':'text-red-600'}">${r.scores.hasGenAI?'Yes':'Missing'}</b></div>
+<div class="flex justify-between p-2 bg-slate-50 rounded"><span>🔗 GitHub</span><b class="${/github/i.test(r.resumeText)?'text-emerald-600':'text-red-600'}">${/github/i.test(r.resumeText)?'Yes':'Missing'}</b></div>
+<div class="flex justify-between p-2 bg-slate-50 rounded"><span>💼 LinkedIn</span><b class="${/linkedin/i.test(r.resumeText)?'text-emerald-600':'text-red-600'}">${/linkedin/i.test(r.resumeText)?'Yes':'Missing'}</b></div>
+<div class="flex justify-between p-2 bg-slate-50 rounded"><span>🔢 Quantifiable Results</span><b class="${r.scores.hasMetrics?'text-emerald-600':'text-red-600'}">${r.scores.hasMetrics?'Yes':'None'}</b></div>
+`;
+
+document.getElementById('recStrengths').innerHTML = (r.exact.length >= 5 ? '<li>Strong keyword alignment</li>' : '<li>Some matching skills</li>') + (r.scores.hasGenAI ? '<li>GenAI awareness</li>' : '') + (r.projects.length >= 3 ? '<li>3+ projects</li>' : '') + (r.scores.hasGithub ? '<li>GitHub linked</li>' : '');
+document.getElementById('recConcerns').innerHTML = (r.missing.length > 0 ? `<li>${r.missing.length} skills missing</li>` : '') + (!r.scores.hasGenAI ? '<li>No GenAI mention (2026 red flag)</li>' : '') + (r.projects.length < 3 ? '<li>Fewer than 3 projects</li>' : '') + (!r.scores.hasMetrics ? '<li>No quantifiable achievements</li>' : '');
+document.getElementById('recRedFlags').innerHTML = (resumeLen < 500 ? '<li>Resume too short</li>' : '') + (r.projects.length === 0 ? '<li>No projects section</li>' : '') + (!r.scores.hasGenAI ? '<li>No GenAI in 2026 = looks behind</li>' : '') + (r.exact.length === 0 ? '<li>Zero skill match</li>' : '');
+if (!document.getElementById('recRedFlags').innerHTML.trim()) document.getElementById('recRedFlags').innerHTML = '<li class="text-emerald-600">No major red flags</li>';
+document.getElementById('shortlistProb').textContent = Math.min(85, Math.max(5, Math.round(r.truthScore * 0.85))) + '%';
+
+const hmVerdict = r.truthScore >= 70 ? {color:'bg-emerald-100 text-emerald-800 border-emerald-300', icon:'✅', text:'WOULD INTERVIEW'} : r.truthScore >= 50 ? {color:'bg-amber-100 text-amber-800 border-amber-300', icon:'🤔', text:'MAYBE INTERVIEW'} : {color:'bg-red-100 text-red-800 border-red-300', icon:'❌', text:'LIKELY REJECT'};
+document.getElementById('hmDecision').innerHTML = `<div class="inline-block ${hmVerdict.color} border-2 px-4 py-2 rounded-lg font-semibold text-sm">${hmVerdict.icon} ${hmVerdict.text}</div>`;
+document.getElementById('hmJustification').textContent = hmVerdict.text === 'WOULD INTERVIEW' ? 'Skills match. Would probe: project depth, system design, GenAI usage, communication.' : hmVerdict.text === 'MAYBE INTERVIEW' ? 'Would only interview if candidate pool is weak. Focus: can they learn fast?' : 'Rejection likely. Better fits available.';
+
+document.getElementById('benchmarkPos').innerHTML = `<b>Your position:</b> ${r.truthScore >= 88 ? '🌟 <b class="text-purple-700">Top 1%</b>' : r.truthScore >= 75 ? '🏆 <b class="text-emerald-700">Top 10%</b>' : r.truthScore >= 60 ? '🥇 <b class="text-blue-700">Top 25%</b>' : r.truthScore >= 45 ? '📊 <b>Average</b>' : '⚠️ <b class="text-red-700">Below average</b>'}`;
+
+const roadmap = [];
+if (!r.scores.hasGenAI) roadmap.push({impact:'high', text:`<b>Build 1 GenAI project in 2026</b> (RAG, agent, fine-tuning). Even 1 weekend project counts.`, boost:'+20-25%'});
+if (r.missing.length > 0) roadmap.push({impact:'high', text:`<b>Learn ${r.missing[0]||'top missing skill'}</b> · 1-2 weeks of focused work`, boost:'+15-20%'});
+if (!r.scores.hasMetrics) roadmap.push({impact:'high', text:`<b>Rewrite every bullet with metrics</b>: "Built X" → "Built X serving 5K users, 40% faster"`, boost:'+15%'});
+if (r.projects.length < 4) roadmap.push({impact:'high', text:`<b>Build 2-3 projects related to JD</b>, deploy with live demos + GitHub README`, boost:'+12%'});
+if (!r.scores.hasGithub) roadmap.push({impact:'high', text:`<b>Create polished GitHub</b>, pin 4 best repos with READMEs and demo GIFs`, boost:'+8%'});
+if (!r.scores.hasLinkedin) roadmap.push({impact:'medium', text:`<b>Optimize LinkedIn</b>: photo, headline, About, 500+ connections`, boost:'+5%'});
+if (!/certif/i.test(r.resumeText)) roadmap.push({impact:'medium', text:`<b>Get 2026 certs</b>: DeepLearning.AI GenAI, HuggingFace, Anthropic Claude API`, boost:'+5%'});
+if (!/hackathon|publication|talk|blog/i.test(r.resumeText)) roadmap.push({impact:'medium', text:`<b>Win a hackathon or publish</b>: Anthropic AI Builders, NeurIPS workshop, PyConf talk`, boost:'+7%'});
+if (r.scores.expYears === 0 && !r.scores.hasInternship) roadmap.push({impact:'high', text:`<b>Get ANY internship</b>, even 2-month unpaid at a startup`, boost:'+20%'});
+if (/hardworking|team player|passionate/i.test(r.resumeText)) roadmap.push({impact:'low', text:`<b>Delete buzzwords</b> like "hardworking team player"`, boost:'+3%'});
+
+const impactColors = {high:'bg-red-50 border-red-300', medium:'bg-amber-50 border-amber-300', low:'bg-slate-50 border-slate-300'};
+const impactBadges = {high:'<span class="text-[10px] bg-red-200 text-red-800 px-2 py-0.5 rounded-full font-bold">HIGH</span>', medium:'<span class="text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-bold">MED</span>', low:'<span class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-bold">LOW</span>'};
+document.getElementById('roadmap').innerHTML = roadmap.slice(0, 8).map(item => `<div class="p-3 border-l-4 ${impactColors[item.impact]} rounded"><div class="flex justify-between items-start gap-2"><p class="text-xs flex-1 text-slate-700">${item.text}</p><span class="text-xs font-bold text-emerald-700 whitespace-nowrap">${item.boost}</span></div><div class="mt-1">${impactBadges[item.impact]}</div></div>`).join('');
+
+const interviewQs = [];
+interviewQs.push(`<b>Walk me through your project "${r.projects[0]?.substring(0,40) || 'best project'}..."</b> — Test depth. Memorize architecture, your role, 3 challenges, impact.`);
+if (r.missing.length > 0) interviewQs.push(`<b>Why don't you have ${r.missing[0]} on your resume?</b> — Shows learning agility.`);
+if (r.scores.hasGenAI) interviewQs.push(`<b>Explain your RAG architecture</b> — Be ready to whiteboard it.`);
+interviewQs.push(`<b>Why this company?</b> — Research product, recent news, tech blog.`);
+interviewQs.push(`<b>Tell me about a time you disagreed with a teammate.</b> — Use STAR.`);
+interviewQs.push(`<b>How do you stay updated with ${r.jobSkills[0]||'tech'}?</b> — Name specific papers, repos, conferences.`);
+interviewQs.push(`<b>What's your biggest weakness?</b> — Real one + how you're fixing it.`);
+document.getElementById('interviewPrep').innerHTML = interviewQs.map(q => `<div class="p-3 bg-blue-50 rounded text-xs text-slate-700">❓ ${q}</div>`).join('');
+
+const atsP = r.scores.atsScore;
+const shortP = Math.min(85, Math.round(r.truthScore * 0.85));
+const intP = Math.min(75, Math.round(r.truthScore * 0.6));
+const offP = Math.min(50, Math.round(r.truthScore * 0.35));
+document.getElementById('finalATS').textContent = atsP + '%';
+document.getElementById('finalShortlist').textContent = shortP + '%';
+document.getElementById('finalInterview').textContent = intP + '%';
+document.getElementById('finalOffer').textContent = offP + '%';
+setTimeout(() => {
+document.getElementById('atsBar').style.width = atsP + '%';
+document.getElementById('shortBar').style.width = shortP + '%';
+document.getElementById('intBar').style.width = intP + '%';
+document.getElementById('offBar').style.width = offP + '%';
+}, 200);
+
+renderPieChart(r);
+renderBarChart(r);
+renderRadarChart(r);
+renderJobs(r);
+renderResources(r);
+}
+
+function setBar(prefix, score) {
+document.getElementById(prefix+'Score').textContent = Math.round(score);
+setTimeout(() => document.getElementById(prefix+'Bar').style.width = Math.round(score)+'%', 100);
+}
+
+function renderPieChart(r) {
+if (pieChart) pieChart.destroy();
+const ctx = document.getElementById('pieChart').getContext('2d');
+const total = r.exact.length + r.related.length + r.missing.length || 1;
+const pct = v => Math.round(v/total*100);
+pieChart = new Chart(ctx, {
+type: 'doughnut',
+data: {
+labels: [
+  `✅ Exact (${pct(r.exact.length)}%)`,
+  `🔗 Transferable (${pct(r.related.length)}%)`,
+  `❌ Missing (${pct(r.missing.length)}%)`
+],
+datasets: [{
+  data: [r.exact.length, r.related.length, r.missing.length],
+  backgroundColor: ['#10b981','#3b82f6','#ef4444'],
+  hoverBackgroundColor: ['#059669','#2563eb','#dc2626'],
+  borderWidth: 3, borderColor: '#fff',
+  hoverOffset: 8
+}]
+},
+options: {
+  responsive: true, maintainAspectRatio: false,
+  cutout: '65%',
+  animation: {animateScale: true, duration: 900},
+  plugins: {
+    legend: {position:'bottom', labels:{padding:14, font:{size:11}, boxWidth:14}},
+    tooltip: {callbacks:{label: ctx => ` ${ctx.label}: ${ctx.parsed} skills`}}
+  }
+}
+});
+// Draw center text
+const origDraw = pieChart.draw.bind(pieChart);
+pieChart.draw = function() {
+  origDraw();
+  const {ctx: c, chartArea:{left,right,top,bottom}} = pieChart;
+  const cx = (left+right)/2, cy = (top+bottom)/2;
+  c.save();
+  c.textAlign='center'; c.textBaseline='middle';
+  c.fillStyle='#1e293b'; c.font='bold 22px Inter,sans-serif';
+  c.fillText(r.matchScore+'%', cx, cy-8);
+  c.fillStyle='#64748b'; c.font='11px Inter,sans-serif';
+  c.fillText('Match', cx, cy+12);
+  c.restore();
+};
+pieChart.draw();
+}
+
+function renderBarChart(r) {
+if (barChart) barChart.destroy();
+const ctx = document.getElementById('barChart').getContext('2d');
+const scores = [r.scores.domainScore, r.scores.techScore, r.scores.respScore, r.scores.projectScore, r.scores.atsScore];
+const colors = scores.map(s => s >= 70 ? '#10b981' : s >= 45 ? '#f59e0b' : '#ef4444');
+barChart = new Chart(ctx, {
+type: 'bar',
+data: {
+  labels: ['Domain Fit', 'Tech Stack', 'Resp. Match', 'Projects', 'ATS Score'],
+  datasets: [{
+    label: 'Score /100',
+    data: scores,
+    backgroundColor: colors,
+    borderRadius: 8,
+    borderSkipped: false,
+    barThickness: 26
+  }]
+},
+options: {
+  responsive: true, maintainAspectRatio: false,
+  indexAxis: 'y',
+  animation: {duration: 900, easing: 'easeOutQuart'},
+  plugins: {
+    legend: {display:false},
+    tooltip: {callbacks:{label: ctx => ` ${ctx.parsed.x}/100`}}
+  },
+  scales: {
+    x: {beginAtZero:true, max:100, grid:{color:'#f1f5f9'}, ticks:{callback: v => v+'%'}},
+    y: {grid:{display:false}, ticks:{font:{size:11, weight:'500'}}}
+  }
+}
+});
+}
+
+
+function renderRadarChart(r) {
+if (radarChart) radarChart.destroy();
+const ctx = document.getElementById('radarChart').getContext('2d');
+radarChart = new Chart(ctx, {
+type: 'radar',
+data: {
+  labels: ['Skill Match', 'Projects', 'ATS', 'Tech Depth', 'Truth Score', 'Domain Fit'],
+  datasets: [{
+    label: 'Your Profile',
+    data: [r.matchScore, r.scores.projectScore, r.scores.atsScore, r.scores.techScore, r.truthScore, r.scores.domainScore],
+    backgroundColor: 'rgba(99,102,241,0.15)',
+    borderColor: '#6366f1',
+    pointBackgroundColor: '#6366f1',
+    pointBorderColor: '#fff',
+    pointHoverRadius: 6,
+    borderWidth: 2
+  },{
+    label: 'Top 10% Candidate',
+    data: [78,80,85,78,75,80],
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    borderColor: '#10b981',
+    pointBackgroundColor: '#10b981',
+    pointBorderColor: '#fff',
+    borderWidth: 2,
+    borderDash: [5,4]
+  }]
+},
+options: {
+  responsive: true, maintainAspectRatio: false,
+  animation: {duration:900},
+  plugins: {legend:{position:'bottom',labels:{font:{size:10},padding:10,boxWidth:12}}},
+  scales: {
+    r: {
+      beginAtZero:true, max:100,
+      ticks:{display:false, stepSize:25},
+      grid:{color:'#e2e8f0'},
+      pointLabels:{font:{size:10,weight:'500'},color:'#475569'},
+      angleLines:{color:'#e2e8f0'}
+    }
+  }
+}
+});
+}
+function renderJobs(r) {
+const matched = COMPANIES.map(c => {
+const overlap = c.skills.filter(s => r.exact.includes(s) || r.related.includes(s)).length;
+return {...c, overlap, matchPct: Math.min(95, Math.round((overlap / c.skills.length) * 100))};
+}).sort((a,b) => b.matchPct - a.matchPct).slice(0, 9);
+
+document.getElementById('jobList').innerHTML = matched.map(c => {
+const color = c.matchPct >= 70 ? 'border-emerald-300' : c.matchPct >= 50 ? 'border-amber-300' : 'border-slate-200';
+return `<div class="border ${color} rounded-xl p-4 hover:shadow-md transition bg-white">
+<div class="flex items-center gap-2 mb-2">
+<span class="text-2xl">${c.logo}</span>
+<div class="flex-1 min-w-0">
+<h4 class="font-bold text-slate-800 text-sm truncate">${c.name}</h4>
+<p class="text-[10px] text-slate-500">${c.tier}</p>
+</div>
+<span class="text-xs font-bold ${c.matchPct >= 60 ? 'text-emerald-600' : c.matchPct >= 40 ? 'text-amber-600' : 'text-slate-500'}">${c.matchPct}%</span>
+</div>
+<p class="text-xs text-slate-600 mb-2">${c.roles.slice(0,3).join(' · ')}</p>
+<div class="w-full bg-slate-200 rounded-full h-1.5 mb-1"><div class="bg-brand-500 h-1.5 rounded-full" style="width:${c.matchPct}%"></div></div>
+<p class="text-[10px] text-slate-500">${c.overlap}/${c.skills.length} key skills</p>
+</div>`}).join('');
+}
+
+function renderResources(r) {
+const learnMap = {
+'python':{platform:'Free: Python.org · Paid: Coursera', course:'Python for Everybody (Dr. Chuck) · ~40 hrs', cost:'Free-$49', time:'2-3 weeks'},
+'java':{platform:'Free: JavaTpoint · Paid: Udemy', course:'Java Masterclass · ~80 hrs', cost:'Free-$15', time:'4-6 weeks'},
+'react':{platform:'Free: react.dev (official)', course:'Tutorial + 3 projects', cost:'Free', time:'3-4 weeks'},
+'aws':{platform:'AWS Skill Builder · A Cloud Guru', course:'Cloud Practitioner · ~50 hrs', cost:'Free-$30', time:'4 weeks'},
+'docker':{platform:'Free: Docker docs · KodeKloud', course:'Docker Mastery · ~30 hrs', cost:'Free-$20', time:'2 weeks'},
+'kubernetes':{platform:'KodeKloud · Linux Foundation', course:'CKA path · ~60 hrs', cost:'$30-$300', time:'6-8 weeks'},
+'machine learning':{platform:'Coursera (Andrew Ng)', course:'ML Specialization · ~90 hrs', cost:'$49/mo', time:'3-4 months'},
+'llm':{platform:'DeepLearning.AI · HuggingFace', course:'Generative AI with LLMs · ~16 hrs', cost:'Free-$49', time:'2-3 weeks'},
+'rag':{platform:'DeepLearning.AI · LangChain docs', course:'Building RAG Apps · ~10 hrs', cost:'Free', time:'1-2 weeks'},
+'langchain':{platform:'LangChain docs · DeepLearning.AI', course:'LangChain for LLM Apps', cost:'Free', time:'1-2 weeks'},
+'prompt engineering':{platform:'DeepLearning.AI', course:'ChatGPT Prompt Engineering · ~4 hrs', cost:'Free', time:'1 week'},
+'agentic ai':{platform:'DeepLearning.AI · LangGraph', course:'AI Agents in LangGraph · ~10 hrs', cost:'Free', time:'2 weeks'},
+'vector database':{platform:'Pinecone docs · Chroma docs', course:'Vector DBs + RAG project', cost:'Free', time:'1-2 weeks'},
+'fine-tuning':{platform:'HuggingFace · DeepLearning.AI', course:'Fine-Tuning & RLHF · ~20 hrs', cost:'Free', time:'2-3 weeks'},
+'pytorch':{platform:'Free: pytorch.org · Fast.ai', course:'Practical Deep Learning · ~50 hrs', cost:'Free', time:'6 weeks'},
+'claude api':{platform:'Anthropic docs', course:'Claude API Course', cost:'Free', time:'1 week'},
+'openai api':{platform:'OpenAI docs · DeepLearning.AI', course:'Building Apps with OpenAI', cost:'Free', time:'1-2 weeks'},
+'mcp':{platform:'Anthropic docs · ModelContextProtocol.io', course:'MCP servers + Claude', cost:'Free', time:'1-2 weeks'},
+'transformers':{platform:'HuggingFace NLP course', course:'Transformers · ~30 hrs', cost:'Free', time:'3-4 weeks'},
+'data structures':{platform:'Free: LeetCode · NeetCode.io', course:'Neetcode 150 + Blind 75', cost:'Free-$30', time:'3-4 months'},
+'system design':{platform:'Educative.io (Alex Xu)', course:'Grokking System Design · ~60 hrs', cost:'$59', time:'2-3 months'},
+'typescript':{platform:'Free: typescriptlang.org', course:'Official tutorial + projects', cost:'Free', time:'2-3 weeks'},
+'next.js':{platform:'Free: nextjs.org/learn', course:'Official + 2 projects', cost:'Free', time:'3 weeks'},
+'fastapi':{platform:'Free: FastAPI tutorial', course:'Official + auth + DB', cost:'Free', time:'2 weeks'},
+'git':{platform:'Free: Learn Git Branching', course:'Interactive + 5 OSS contributions', cost:'Free', time:'1 week'},
+'sql':{platform:'Free: Mode Analytics · LeetCode', course:'SQL 50 problems', cost:'Free', time:'2-3 weeks'},
+'postgresql':{platform:'Free: pgexercises.com', course:'SQL + PG + 5 projects', cost:'Free', time:'3 weeks'},
+'redis':{platform:'Free: Redis University', course:'RU101 + RU102', cost:'Free', time:'2 weeks'}
+};
+
+const missingTop = r.missing.slice(0, 8);
+const resources = missingTop.map(skill => {
+const info = learnMap[skill] || {platform:'Coursera / Udemy / YouTube', course:`Search "${skill} for Beginners 2026"`, cost:'Free-$50', time:'2-4 weeks'};
+return {skill, ...info};
+});
+
+document.getElementById('learningResources').innerHTML = resources.length
+? resources.map(r => `<div class="p-4 border border-slate-200 rounded-lg hover:border-brand-300 transition">
+<h4 class="font-bold text-sm text-slate-800 mb-2">${r.skill}</h4>
+<div class="space-y-1 text-xs text-slate-600">
+<p>📚 <b>Course:</b> ${r.course}</p>
+<p>🎓 <b>Platform:</b> ${r.platform}</p>
+<p>💰 <b>Cost:</b> ${r.cost}</p>
+<p>⏱️ <b>Time:</b> ${r.time}</p>
+</div>
+</div>`).join('')
+: '<p class="text-sm text-emerald-600">✅ No major skill gaps! Focus on interview prep.</p>';
+}
+
+async function downloadPDF() {
+if (!analysisResult) { toast('Run analysis first','error'); return; }
+toast('Generating PDF...','info');
+try {
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF('p', 'mm', 'a4');
+let y = 15;
+const r = analysisResult;
+doc.setFontSize(18); doc.setTextColor(79,70,229);
+doc.text('ResumeAI Pro 2026 - Report', 15, y); y+=8;
+doc.setFontSize(9); doc.setTextColor(100);
+doc.text(new Date().toLocaleString(), 15, y); y+=8;
+doc.setFontSize(14); doc.setTextColor(0);
+doc.text(`Match: ${r.matchScore}% | Truth: ${r.truthScore}%`, 15, y); y+=8;
+doc.setFontSize(10);
+doc.text(`Exact: ${r.exact.length} | Missing: ${r.missing.length} | Related: ${r.related.length}`, 15, y); y+=8;
+doc.setFontSize(12); doc.setTextColor(34,139,34);
+doc.text('EXACT MATCHES', 15, y); y+=5;
+doc.setFontSize(9); doc.setTextColor(60);
+doc.text(r.exact.join(', ') || 'None', 15, y, {maxWidth:180});
+y += Math.ceil(r.exact.join(', ').length/80)*4 + 3;
+doc.setFontSize(12); doc.setTextColor(220,38,38);
+doc.text('MISSING SKILLS', 15, y); y+=5;
+doc.setFontSize(9); doc.setTextColor(60);
+doc.text(r.missing.join(', ') || 'None', 15, y, {maxWidth:180});
+y += Math.ceil(r.missing.join(', ').length/80)*4 + 3;
+doc.save(`Resume_Analysis_${Date.now()}.pdf`);
+toast('PDF downloaded');
+} catch(e) { toast('PDF error','error'); }
+}
+
+function saveReport() {
+if (!analysisResult) return;
+const blob = new Blob([JSON.stringify(analysisResult, null, 2)], {type:'application/json'});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url; a.download = `resume_report_${Date.now()}.json`; a.click();
+URL.revokeObjectURL(url);
+toast('JSON saved');
+}
+
+function shareReport() {
+if (!analysisResult) { toast('Run analysis first','error'); return; }
+const r = analysisResult;
+const text = `🎯 ResumeAI Pro 2026\nMatch: ${r.matchScore}% | Truth: ${r.truthScore}%\n✅ ${r.exact.length} matched | ❌ ${r.missing.length} missing`;
+if (navigator.share) navigator.share({title:'Resume Analysis', text});
+else { navigator.clipboard.writeText(text); toast('Copied'); }
+}
+
+function newAnalysis() {
+document.getElementById('results').classList.add('hidden');
+document.getElementById('jobDesc').value = '';
+document.getElementById('recStatus').textContent = '';
+window.scrollTo({top:0, behavior:'smooth'});
+toast('Ready for new analysis','info');
+}
+
+// ============ DEMO RESUME TOGGLE ============
+function toggleDemoResume() {
+  const panel = document.getElementById('demoResumePanel');
+  const arrow = document.getElementById('demoResumeArrow');
+  const btn   = document.getElementById('demoResumeToggle');
+  const isOpen = btn.getAttribute('aria-expanded') === 'true';
+  if (!isOpen) {
+    panel.style.maxHeight = panel.scrollHeight + 40 + 'px';
+    panel.style.opacity   = '1';
+    arrow.style.transform = 'rotate(90deg)';
+    btn.setAttribute('aria-expanded', 'true');
+    setTimeout(() => panel.scrollIntoView({behavior:'smooth', block:'nearest'}), 350);
+  } else {
+    panel.style.maxHeight = '0';
+    panel.style.opacity   = '0';
+    arrow.style.transform = 'rotate(0deg)';
+    btn.setAttribute('aria-expanded', 'false');
+  }
+}
+</script>
+</body>
+</html>
